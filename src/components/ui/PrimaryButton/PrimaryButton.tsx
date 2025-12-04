@@ -14,12 +14,28 @@
  * limitations under the License.
  */
 
-import { AuthHero } from './components/auth/AuthHero';
-import { LoginPanel } from './components/auth/LoginPanel';
-import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import './PrimaryButton.css';
 
-function App(): JSX.Element {
-  return <AuthLayout hero={<AuthHero />} panel={<LoginPanel />} />;
+import type { ReactNode } from 'react';
+
+interface PrimaryButtonProps {
+  children: ReactNode;
+  type?: 'button' | 'submit' | 'reset';
+  onClick?: () => void;
+  fullWidth?: boolean;
 }
 
-export default App;
+export function PrimaryButton({
+  children,
+  type = 'button',
+  onClick,
+  fullWidth,
+}: PrimaryButtonProps): JSX.Element {
+  const className = fullWidth ? 'primary-button primary-button--full' : 'primary-button';
+
+  return (
+    <button type={type} onClick={onClick} className={className}>
+      {children}
+    </button>
+  );
+}

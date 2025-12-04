@@ -1,0 +1,18 @@
+:root {
+  /* Text colors */
+  --rq-color-text-primary: #f5f5ff;
+  --rq-color-text-muted: #9ea0b4;
+
+  /* Accent colors */
+  --rq-color-accent: #ff668a;
+  --rq-color-accent-soft-bg: rgba(255, 102, 138, 0.14);
+
+  /* Surfaces */
+  --rq-color-surface-user-widget: rgba(7, 8, 11, 0.9);
+  --rq-color-surface-user-widget-menu: rgba(9, 10, 16, 0.98);
+  --rq-color-surface-avatar: #151623;
+
+  /* Borders */
+  --rq-color-border-user-widget: rgba(158, 160, 180, 0.6);
+  --rq-color-border-user-widget-strong: rgba(158, 160, 180, 0.65);
+}

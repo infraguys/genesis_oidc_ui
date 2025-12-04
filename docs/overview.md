@@ -55,9 +55,20 @@ To run linting, execute:
 npm run lint
 ```
 
+## Authentication flow
+
+The application includes a minimal implementation of an authentication flow based on a login form and token handling.
+
+Key elements of the flow:
+
+- displaying the login form on the main screen;
+- sending the username and password to the backend token endpoint;
+- storing the received tokens in memory and, if needed, in `localStorage`.
+
+A detailed description of the architecture, token handling algorithm, and manual testing scenarios is available in the `auth-flow.md` document in the `docs/` directory.
+
 ## License and copyright
 
 - TypeScript and TSX source files (`.ts`, `.tsx`) are licensed under the Apache 2.0 License.
 - Each source file includes a copyright
   notice for Genesis Corporation for 2025.
-

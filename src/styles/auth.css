@@ -1,0 +1,218 @@
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: #07080b;
+}
+
+.auth-hero {
+  max-width: 420px;
+  text-align: center;
+}
+
+.auth-hero__logo {
+  margin: 0 auto 2rem;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(255, 23, 68, 0.16) 0, transparent 70%);
+  border: 2px solid #ff1744;
+  box-shadow:
+    0 0 40px rgba(255, 23, 68, 0.85),
+    0 0 110px rgba(255, 0, 80, 0.75);
+}
+
+.auth-hero__logo-inner {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    #ff1744 0,
+    #ff003c 45%,
+    #ff003c 70%,
+    rgba(255, 0, 60, 0.18) 100%
+  );
+  box-shadow:
+    0 0 26px rgba(255, 0, 80, 0.9),
+    0 0 60px rgba(255, 0, 80, 0.85),
+    0 0 120px rgba(255, 0, 80, 0.75);
+  animation: pulse-core 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pulse-core {
+  0% {
+    transform: scale(1);
+    box-shadow:
+      0 0 18px rgba(255, 0, 80, 0.7),
+      0 0 40px rgba(255, 0, 80, 0.6),
+      0 0 80px rgba(255, 0, 80, 0.55);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow:
+      0 0 30px rgba(255, 0, 80, 0.9),
+      0 0 80px rgba(255, 0, 80, 0.85),
+      0 0 150px rgba(255, 0, 80, 0.9);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 18px rgba(255, 0, 80, 0.7),
+      0 0 40px rgba(255, 0, 80, 0.6),
+      0 0 80px rgba(255, 0, 80, 0.55);
+  }
+}
+
+.auth-hero__title {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  color: #ff668a;
+  text-shadow:
+    0 0 12px rgba(255, 60, 120, 0.9),
+    0 0 28px rgba(255, 0, 80, 0.7);
+}
+
+.auth-hero__subtitle {
+  margin: 0;
+  color: #7a7c91;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  min-height: 3.1rem; /* ~2 lines of text */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: center;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(10, 11, 18, 0.9);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(18, 20, 30, 0.9);
+  padding: 2.5rem 2.75rem 3rem;
+}
+
+.login-panel__header {
+  margin-bottom: 2rem;
+}
+
+.login-panel__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+.login-panel__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #8a8b95;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: #272838;
+  border: 1px solid #3b3c4f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #9ea0b4;
+}
+
+.icon--user::before {
+  content: 'U';
+}
+
+.icon--action {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #9ea0b4;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.icon--action:hover {
+  color: #ffffff;
+}
+
+.password-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  color: #9ea0b4;
+}
+
+.password-toggle__icon {
+  position: relative;
+  width: 1.4rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  box-shadow: 0 0 8px rgba(159, 166, 190, 0.35);
+}
+
+.password-toggle__icon::before {
+  content: '';
+  position: absolute;
+  inset: 26% 32%;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.password-toggle--hidden .password-toggle__icon::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateY(-50%) rotate(-35deg);
+}
+
+.password-toggle--visible {
+  color: #ffffff;
+}
+
+.password-toggle--visible .password-toggle__icon {
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 960px) {
+  .login-panel {
+    margin-bottom: 2rem;
+  }
+}

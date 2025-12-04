@@ -1,0 +1,90 @@
+/*
+ * Copyright 2025 Genesis Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+
+import { loginWithPassword } from '../../services/authClient';
+import { tokenStorage } from '../../services/tokenStorage';
+import { PrimaryButton } from '../ui/PrimaryButton/PrimaryButton';
+import { TextInput } from '../ui/TextInput/TextInput';
+
+export function LoginForm(): JSX.Element {
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+
+    if (!login || !password || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await loginWithPassword({
+        username: login,
+        password,
+        rememberMe: true,
+        scope: 'project:default',
+      });
+      tokenStorage.setCurrentUser(login);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Login failed', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="login-form" onSubmit={handleSubmit}>
+      <TextInput
+        label="Login"
+        placeholder="Enter your login"
+        value={login}
+        onChange={setLogin}
+        autoComplete="username"
+        icon={<span className="icon icon--user" />}
+      />
+      <TextInput
+        label="Password"
+        placeholder="Enter your password"
+        value={password}
+        onChange={setPassword}
+        type={showPassword ? 'text' : 'password'}
+        autoComplete="current-password"
+        icon={
+          <button
+            type="button"
+            className={`password-toggle ${
+              showPassword ? 'password-toggle--visible' : 'password-toggle--hidden'
+            }`}
+            onClick={() => setShowPassword((current) => !current)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            <span className="password-toggle__icon" aria-hidden="true" />
+          </button>
+        }
+      />
+      <PrimaryButton type="submit" fullWidth>
+        {isSubmitting ? 'LOGGING IN…' : 'LOGIN'}
+      </PrimaryButton>
+    </form>
+  );
+}

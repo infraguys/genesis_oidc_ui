@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-import { AuthHero } from './components/auth/AuthHero';
-import { LoginPanel } from './components/auth/LoginPanel';
-import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import { DynamicTagline } from './DynamicTagline';
 
-function App(): JSX.Element {
-  return <AuthLayout hero={<AuthHero />} panel={<LoginPanel />} />;
+export function AuthHero(): JSX.Element {
+  return (
+    <div className="auth-hero">
+      <div className="auth-hero__logo">
+        <div className="auth-hero__logo-inner" />
+      </div>
+      <h1 className="auth-hero__title">Genesis Core</h1>
+      <DynamicTagline />
+    </div>
+  );
 }
-
-export default App;

@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-import { AuthHero } from './components/auth/AuthHero';
-import { LoginPanel } from './components/auth/LoginPanel';
-import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import { LoginForm } from './LoginForm';
 
-function App(): JSX.Element {
-  return <AuthLayout hero={<AuthHero />} panel={<LoginPanel />} />;
+export function LoginPanel(): JSX.Element {
+  return (
+    <div className="login-panel">
+      <div className="login-panel__header">
+        <h2 className="login-panel__title">Welcome</h2>
+        <p className="login-panel__subtitle">
+          Sign in to access this application via the OIDC (OpenID Connect) authentication protocol.
+        </p>
+      </div>
+      <LoginForm />
+    </div>
+  );
 }
-
-export default App;

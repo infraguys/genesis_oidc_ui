@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-import { AuthHero } from './components/auth/AuthHero';
-import { LoginPanel } from './components/auth/LoginPanel';
-import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import './AuthLayout.css';
 
-function App(): JSX.Element {
-  return <AuthLayout hero={<AuthHero />} panel={<LoginPanel />} />;
+import type { ReactNode } from 'react';
+
+interface AuthLayoutProps {
+  hero: ReactNode;
+  panel: ReactNode;
 }
 
-export default App;
+export function AuthLayout({ hero, panel }: AuthLayoutProps): JSX.Element {
+  return (
+    <div className="auth-layout">
+      <div className="auth-layout__left">{hero}</div>
+      <div className="auth-layout__divider" />
+      <div className="auth-layout__right">{panel}</div>
+    </div>
+  );
+}

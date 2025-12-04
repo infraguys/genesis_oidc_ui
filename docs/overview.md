@@ -60,6 +60,17 @@ During local development, the Vite dev server is configured to proxy backend req
   - Example: `/genesis/api/health` -> `http://127.0.0.1:11010/api/health`.
 - This proxy configuration is applied only when running the dev server via `npm run dev`.
 
+In addition to forwarding the request, the proxy also attaches a set of headers that describe how the frontend is accessed externally:
+
+- `X-Forwarded-Host` — the host used by the client to access the UI (for example, `auth.genesis-core.local`).
+- `X-Forwarded-Port` — the port used by the client to access the UI (for example, `5173`).
+- `X-Forwarded-Proto` — the protocol used by the client (`http` in typical local development scenarios).
+- `X-Forwarded-Prefix` — the UI base path prefix (`/genesis`).
+
+The backend can use these headers to reconstruct the external base URL of the UI. For example:
+
+`{X-Forwarded-Proto}://{X-Forwarded-Host}:{X-Forwarded-Port}{X-Forwarded-Prefix}`
+
 The proxy is configured in the `vite.config.ts` file.
 
 ## Linting

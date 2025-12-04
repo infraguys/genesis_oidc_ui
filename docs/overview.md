@@ -1,3 +1,19 @@
+<!--
+Copyright 2025 Genesis Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Project overview
 
 ## Purpose
@@ -34,6 +50,17 @@ This repository contains a minimal single-page application built with React, Typ
 - `npm run build` — build the production bundle.
 - `npm run preview` — preview the built application.
 - `npm run lint` — run ESLint checks.
+ 
+## Development server proxy
+
+During local development, the Vite dev server is configured to proxy backend requests.
+
+- All HTTP requests starting with the `/genesis` path prefix are forwarded to `http://127.0.0.1:11010`.
+- The `/genesis` prefix is stripped before the request is sent to the backend.
+  - Example: `/genesis/api/health` -> `http://127.0.0.1:11010/api/health`.
+- This proxy configuration is applied only when running the dev server via `npm run dev`.
+
+The proxy is configured in the `vite.config.ts` file.
 
 ## Linting
 

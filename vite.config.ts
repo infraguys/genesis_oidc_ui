@@ -21,11 +21,43 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['auth.genesis-core.local'],
     proxy: {
       '/genesis': {
         target: 'http://127.0.0.1:11010',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/genesis/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const forwardedProto =
+              (req.headers['x-forwarded-proto'] as string | undefined) ?? 'http';
+            const forwardedHostHeader =
+              (req.headers['x-forwarded-host'] as string | undefined) ??
+              (req.headers.host as string | undefined);
+
+            let host = forwardedHostHeader;
+            let port: string | undefined;
+
+            if (forwardedHostHeader && forwardedHostHeader.includes(':')) {
+              const [parsedHost, parsedPort] = forwardedHostHeader.split(':');
+              host = parsedHost;
+              port = parsedPort;
+            } else if (req.socket.localPort) {
+              port = String(req.socket.localPort);
+            }
+
+            if (host) {
+              proxyReq.setHeader('X-Forwarded-Host', host);
+            }
+
+            if (port) {
+              proxyReq.setHeader('X-Forwarded-Port', port);
+            }
+
+            proxyReq.setHeader('X-Forwarded-Proto', forwardedProto);
+            proxyReq.setHeader('X-Forwarded-Prefix', '/genesis');
+          });
+        },
       },
     },
   },

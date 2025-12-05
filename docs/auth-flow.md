@@ -64,7 +64,60 @@ The IdP configuration object includes at least:
 
 When `idp_uuid` is missing or empty, the request to the IdP endpoint is skipped, and the authentication flow described below continues to work without IdP-specific customization.
 
-In the current version of the application, the main screen renders only the login panel. After a successful login, additional logic (navigation, displaying protected screens, etc.) is **intentionally not executed** — tokens are only stored for later use.
+## Login panel behavior with IdP configuration
+
+When an `idp_uuid` query parameter is present in the browser URL and a corresponding IdP configuration is successfully loaded, the right-hand login panel is fully driven by the IdP data.
+
+- The login form is **not** rendered until the IdP configuration request is completed.
+- If the request succeeds:
+  - The panel header uses the IdP `name` field as the service name.
+    - The title becomes: `Welcome to <name>`.
+    - Example: for `name = "ServiceName"` the title is rendered as `Welcome to ServiceName`.
+  - The panel subtitle is taken from the IdP `description` field.
+    - Example:
+      `Sign in to access ServiceName application via the OIDC (OpenID Connect) authentication protocol.`
+
+If `idp_uuid` is missing or empty, the application does **not** make any IdP request and renders the login panel in its default static variant:
+
+- The header title is simply `Welcome`.
+- The subtitle is a generic description of the OIDC-based sign-in process.
+- The login form is displayed immediately without any IdP-specific customization.
+
+## IdP loading, success, and error states
+
+When `idp_uuid` is present and an IdP configuration request is initiated, the right-hand side of the layout can be in one of three states.
+
+### Loading state
+
+- While the IdP configuration is being loaded, the application renders a loading view in the right-hand panel instead of the login form.
+- The loading view contains:
+  - A short title (for example, `Loading identity provider configuration…`).
+  - A spinner or progress indicator.
+- The login form is **not** visible during this state.
+
+### Success state
+
+- When the IdP configuration is successfully fetched:
+  - The loading view is replaced by the login panel.
+  - The login panel header uses the IdP `name` and `description` fields as described above.
+  - The `LoginForm` component is rendered below the header and behaves the same way as in the generic (non-IdP) scenario.
+
+### Error state
+
+If the IdP configuration request fails (for example, due to network issues or a non-2xx HTTP status):
+
+- The login form is **not** rendered.
+- Instead, the right-hand panel displays a reusable error component specialized for authentication-related problems.
+
+The error component:
+
+- Shows a user-friendly error message, for example:
+  `Unable to load identity provider configuration. Please try again later.`
+- Can display additional technical details (such as the HTTP status or backend error message) in a smaller font to help with diagnostics.
+- Includes a `Retry` action that triggers another attempt to load the IdP configuration.
+- Can be reused for other authentication errors in the future (for example, login failures or token issues), not only for IdP loading failures.
+
+In the current version of the application, the main screen focuses on the login flow. After a successful login, additional logic (navigation, displaying protected screens, etc.) is **intentionally not executed** — tokens are only stored for later use.
 
 ## User authentication flow
 
@@ -90,7 +143,9 @@ In the current version of the application, the main screen renders only the logi
 The login page is a full-screen view with a gradient background and a two-column layout.
 
 - On the left there is the `AuthHero` block with an animated logo and a dynamic tagline.
-- On the right there is the `LoginPanel` with the login form.
+- On the right there is the `LoginPanel`, which either:
+  - shows a loading or error state when IdP configuration is being loaded or failed to load, or
+  - displays the login form with a header and subtitle (either generic or driven by the IdP configuration).
 
 The `AuthLayout` component is responsible for the page layout:
 

@@ -95,16 +95,16 @@ npm run lint
 
 ## Authentication flow
 
-The application includes a minimal implementation of an authentication flow based on a login form and token handling.
+The application includes a minimal implementation of an authentication flow based on a login form, optional IdP configuration, and token handling.
 
 Key elements of the flow:
 
 - displaying the login form on the main screen;
 - sending the username and password to the backend token endpoint;
 - storing the received tokens in memory and, if needed, in `localStorage`;
-- optionally loading an IdP (Identity Provider) configuration when the `idp_uuid` query parameter is present in the browser URL.
+- optionally loading an IdP (Identity Provider) configuration when the `idp_uuid` query parameter is present in the browser URL. When an IdP is loaded successfully, the login panel header and subtitle are customized using the IdP `name` and `description` fields, and the login form is shown only after the IdP request completes.
 
-A detailed description of the architecture, token handling algorithm, and manual testing scenarios is available in the `auth-flow.md` document in the `docs/` directory.
+A detailed description of the architecture, token handling algorithm, IdP-driven login panel behavior, and manual testing scenarios is available in the `auth-flow.md` document in the `docs/` directory.
 
 ## License and copyright
 

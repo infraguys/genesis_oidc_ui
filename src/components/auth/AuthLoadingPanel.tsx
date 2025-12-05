@@ -14,26 +14,18 @@
  * limitations under the License.
  */
 
-import { LoginForm } from './LoginForm';
-
-interface LoginPanelProps {
-  title?: string;
-  subtitle?: string;
-}
-
-export function LoginPanel({ title, subtitle }: LoginPanelProps = {}): JSX.Element {
-  const panelTitle = title ?? 'Welcome';
-  const panelSubtitle =
-    subtitle ??
-    'Sign in to access this application via the OIDC (OpenID Connect) authentication protocol.';
-
+export function AuthLoadingPanel(): JSX.Element {
   return (
-    <div className="login-panel">
+    <div className="login-panel login-panel--loading">
       <div className="login-panel__header">
-        <h2 className="login-panel__title">{panelTitle}</h2>
-        <p className="login-panel__subtitle">{panelSubtitle}</p>
+        <h2 className="login-panel__title">Loading identity provider configuration...</h2>
+        <p className="login-panel__subtitle">
+          Please wait while we fetch settings for your identity provider.
+        </p>
       </div>
-      <LoginForm />
+      <div className="login-panel__loading" aria-hidden="true">
+        <div className="login-panel__spinner" />
+      </div>
     </div>
   );
 }

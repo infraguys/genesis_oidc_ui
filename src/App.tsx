@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
+import { useEffect } from 'react';
+
 import { AuthHero } from './components/auth/AuthHero';
 import { LoginPanel } from './components/auth/LoginPanel';
 import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import { loadIdpFromCurrentUrl } from './services/idpClient';
 
 function App(): JSX.Element {
+  useEffect(() => {
+    void loadIdpFromCurrentUrl();
+  }, []);
+
   return <AuthLayout hero={<AuthHero />} panel={<LoginPanel />} />;
 }
 

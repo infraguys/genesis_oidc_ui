@@ -1,3 +1,19 @@
+<!--
+Copyright 2025 Genesis Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Authentication flow
 
 ## Purpose
@@ -16,6 +32,37 @@ This document describes how the `genesis_oidc_ui` application implements:
 - **Services**
   - `authClient` — a module responsible for calling backend token endpoints and processing responses.
   - `tokenStorage` — a module that stores tokens in memory and in `localStorage` and notifies listeners when tokens change.
+
+## IdP configuration loading
+
+- When the single-page application is opened, it can read an IdP (Identity Provider) identifier from the browser URL query string.
+- The UI expects the `idp_uuid` parameter in the form `?idp_uuid=<uuid>`.
+- If `idp_uuid` is present and non-empty, the frontend calls the backend endpoint:
+
+  - `GET /genesis/v1/iam/idp/{idp_uuid}`.
+
+- The `IdpClient` service is responsible for:
+  - extracting `idp_uuid` from `window.location.search`;
+  - calling the IdP endpoint;
+  - mapping the response to the `IdpConfig` structure.
+
+### IdpConfig structure
+
+The IdP configuration object includes at least:
+
+- `uuid: string`
+- `name: string`
+- `description: string`
+- `created_at: string`
+- `updated_at: string`
+- `status: string`
+- `project_id: string`
+- `iam_client: string`
+- `client_id: string`
+- `scope: string`
+- `callback_uri: string`
+
+When `idp_uuid` is missing or empty, the request to the IdP endpoint is skipped, and the authentication flow described below continues to work without IdP-specific customization.
 
 In the current version of the application, the main screen renders only the login panel. After a successful login, additional logic (navigation, displaying protected screens, etc.) is **intentionally not executed** — tokens are only stored for later use.
 

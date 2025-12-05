@@ -101,7 +101,8 @@ Key elements of the flow:
 
 - displaying the login form on the main screen;
 - sending the username and password to the backend token endpoint;
-- storing the received tokens in memory and, if needed, in `localStorage`.
+- storing the received tokens in memory and, if needed, in `localStorage`;
+- optionally loading an IdP (Identity Provider) configuration when the `idp_uuid` query parameter is present in the browser URL.
 
 A detailed description of the architecture, token handling algorithm, and manual testing scenarios is available in the `auth-flow.md` document in the `docs/` directory.
 

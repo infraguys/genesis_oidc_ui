@@ -27,6 +27,7 @@ export function LoginForm(): JSX.Element {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -35,15 +36,24 @@ export function LoginForm(): JSX.Element {
       return;
     }
 
+    if (!rememberMe) {
+      tokenStorage.clearAll();
+    }
+
     setIsSubmitting(true);
     try {
       await loginWithPassword({
         username: login,
         password,
-        rememberMe: true,
+        rememberMe,
         scope: 'project:default',
       });
-      tokenStorage.setCurrentUser(login);
+
+      if (rememberMe) {
+        tokenStorage.setCurrentUser(login);
+      } else {
+        tokenStorage.setCurrentUser(null);
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Login failed', error);
@@ -82,6 +92,17 @@ export function LoginForm(): JSX.Element {
           </button>
         }
       />
+      <div className="login-form__remember-row">
+        <label className="login-form__remember">
+          <input
+            type="checkbox"
+            className="login-form__remember-checkbox"
+            checked={rememberMe}
+            onChange={(event) => setRememberMe(event.target.checked)}
+          />
+          <span className="login-form__remember-label">Remember me on this computer</span>
+        </label>
+      </div>
       <PrimaryButton type="submit" fullWidth>
         {isSubmitting ? 'LOGGING IN…' : 'LOGIN'}
       </PrimaryButton>

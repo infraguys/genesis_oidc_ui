@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { getIamClientUuid } from './iamClientContext';
+
 export type AuthTokens = {
   token: string | null;
   refreshToken: string | null;
@@ -21,19 +23,53 @@ export type AuthTokens = {
 
 export type TokenListener = (tokens: AuthTokens) => void;
 
-const STORAGE_KEY = 'genesis_oidc_ui.authTokens';
-const USER_STORAGE_KEY = 'genesis_oidc_ui.currentUser';
+const STORAGE_KEY_PREFIX = 'genesis_oidc_ui.';
+const TOKENS_KEY_SUFFIX = '.authTokens';
+const USER_KEY_SUFFIX = '.currentUser';
 
 const listeners = new Set<TokenListener>();
 
 const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
+function getCurrentClientUuid(): string | null {
+  const uuid = getIamClientUuid();
+  if (!uuid) {
+    return null;
+  }
+
+  const trimmed = uuid.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+function getTokensStorageKey(): string | null {
+  const clientUuid = getCurrentClientUuid();
+  if (!clientUuid) {
+    return null;
+  }
+
+  return `${STORAGE_KEY_PREFIX}${clientUuid}${TOKENS_KEY_SUFFIX}`;
+}
+
+function getUserStorageKey(): string | null {
+  const clientUuid = getCurrentClientUuid();
+  if (!clientUuid) {
+    return null;
+  }
+
+  return `${STORAGE_KEY_PREFIX}${clientUuid}${USER_KEY_SUFFIX}`;
+}
 
 function readPersistedTokens(): AuthTokens {
   if (!isBrowser) {
     return { token: null, refreshToken: null };
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const storageKey = getTokensStorageKey();
+  if (!storageKey) {
+    return { token: null, refreshToken: null };
+  }
+
+  const raw = window.localStorage.getItem(storageKey);
   if (!raw) {
     return { token: null, refreshToken: null };
   }
@@ -45,22 +81,36 @@ function readPersistedTokens(): AuthTokens {
       refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : null,
     };
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(storageKey);
     return { token: null, refreshToken: null };
   }
 }
 
-let inMemoryTokens: AuthTokens = readPersistedTokens();
+let inMemoryTokens: AuthTokens = { token: null, refreshToken: null };
 
 function persist(tokens: AuthTokens): void {
   if (!isBrowser) return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+
+  const storageKey = getTokensStorageKey();
+  if (!storageKey) {
+    return;
+  }
+
+  window.localStorage.setItem(storageKey, JSON.stringify(tokens));
 }
 
 function clearPersisted(): void {
   if (!isBrowser) return;
-  window.localStorage.removeItem(STORAGE_KEY);
-  window.localStorage.removeItem(USER_STORAGE_KEY);
+
+  const tokensKey = getTokensStorageKey();
+  const userKey = getUserStorageKey();
+
+  if (tokensKey) {
+    window.localStorage.removeItem(tokensKey);
+  }
+  if (userKey) {
+    window.localStorage.removeItem(userKey);
+  }
 }
 
 function notify(): void {
@@ -73,6 +123,15 @@ function notify(): void {
       console.error('tokenStorage listener error', error);
     }
   });
+}
+
+export function initializeTokensFromStorage(): void {
+  if (!isBrowser) {
+    return;
+  }
+
+  inMemoryTokens = readPersistedTokens();
+  notify();
 }
 
 export const tokenStorage = {
@@ -120,17 +179,28 @@ export const tokenStorage = {
 
   getCurrentUser(): string | null {
     if (!isBrowser) return null;
-    const raw = window.localStorage.getItem(USER_STORAGE_KEY);
+
+    const userKey = getUserStorageKey();
+    if (!userKey) {
+      return null;
+    }
+
+    const raw = window.localStorage.getItem(userKey);
     if (!raw) return null;
     return raw;
   },
 
   setCurrentUser(username: string | null): void {
     if (!isBrowser) return;
+    const userKey = getUserStorageKey();
+    if (!userKey) {
+      return;
+    }
+
     if (!username) {
-      window.localStorage.removeItem(USER_STORAGE_KEY);
+      window.localStorage.removeItem(userKey);
     } else {
-      window.localStorage.setItem(USER_STORAGE_KEY, username);
+      window.localStorage.setItem(userKey, username);
     }
   },
 

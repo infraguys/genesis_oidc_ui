@@ -22,6 +22,8 @@ import { AuthLoadingPanel } from './components/auth/AuthLoadingPanel';
 import { LoginPanel } from './components/auth/LoginPanel';
 import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
 import { fetchIdpByUuid, getIdpUuidFromUrl, type IdpConfig } from './services/idpClient';
+import { initializeTokensFromStorage } from './services/tokenStorage';
+import { setIamClientUuid } from './services/iamClientContext';
 
 function App(): JSX.Element {
   const [idpUuid] = useState<string | null>(() => getIdpUuidFromUrl());
@@ -74,32 +76,66 @@ function App(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!idpConfig) {
+      setIamClientUuid(null);
+      return;
+    }
+
+    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+    if (!iamClient) {
+      setIamClientUuid(null);
+      return;
+    }
+
+    setIamClientUuid(iamClient);
+    initializeTokensFromStorage();
+  }, [idpConfig]);
+
   const handleRetryLoadIdp = (): void => {
     void loadIdpConfig();
   };
 
   const hasIdpInUrl = Boolean(idpUuid);
 
-  let panel = <LoginPanel />;
+  let panel: JSX.Element;
 
-  if (hasIdpInUrl) {
-    if (idpLoading) {
-      panel = <AuthLoadingPanel />;
-    } else if (idpErrorMessage) {
+  if (!hasIdpInUrl) {
+    panel = (
+      <AuthErrorPanel
+        title="Unable to load identity provider"
+        message="The idp_uuid query parameter is missing. Login page cannot be used without an identity provider."
+      />
+    );
+  } else if (idpLoading) {
+    panel = <AuthLoadingPanel />;
+  } else if (idpErrorMessage) {
+    panel = (
+      <AuthErrorPanel
+        title="Unable to load identity provider"
+        message={idpErrorMessage}
+        details={idpErrorDetails ?? undefined}
+        onRetry={handleRetryLoadIdp}
+        retryLabel="Retry"
+      />
+    );
+  } else if (idpConfig) {
+    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+
+    if (!iamClient) {
       panel = (
         <AuthErrorPanel
           title="Unable to load identity provider"
-          message={idpErrorMessage}
-          details={idpErrorDetails ?? undefined}
-          onRetry={handleRetryLoadIdp}
-          retryLabel="Retry"
+          message="The identity provider configuration does not contain a valid IAM client identifier."
         />
       );
-    } else if (idpConfig) {
-      panel = <LoginPanel title={`Welcome to ${idpConfig.name}`} subtitle={idpConfig.description} />;
     } else {
-      panel = <AuthLoadingPanel />;
+      panel = (
+        <LoginPanel title={`Welcome to ${idpConfig.name}`} subtitle={idpConfig.description} />
+      );
     }
+  } else {
+    panel = <AuthLoadingPanel />;
   }
 
   return <AuthLayout hero={<AuthHero />} panel={panel} />;

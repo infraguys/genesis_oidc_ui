@@ -29,6 +29,7 @@ This document describes how the `genesis_oidc_ui` application implements:
 - **User interface components**
   - `LoginForm` — a form for entering username and password.
   - `LoginPanel` — a panel that hosts `LoginForm` and supporting text.
+  - `UserInfoPanel` — a panel that displays the authenticated user profile and lets the user confirm providing their data to the OIDC client.
 - **Services**
   - `authClient` — a module responsible for calling backend token endpoints and processing responses.
   - `tokenStorage` — a module that stores tokens in memory and in `localStorage` and notifies listeners when tokens change.
@@ -66,20 +67,22 @@ The `iam_client` field contains the IAM client UUID that the UI uses when callin
 
 When `idp_uuid` is missing or empty, or when the IdP configuration cannot be loaded or does not contain a valid `iam_client` value, the application treats this as a configuration error and renders the authentication error panel instead of the login form.
 
-## Login panel behavior with IdP configuration
+## Authentication panel behavior with IdP configuration
 
-When an `idp_uuid` query parameter is present in the browser URL and a corresponding IdP configuration is successfully loaded, the right-hand login panel is fully driven by the IdP data.
+When an `idp_uuid` query parameter is present in the browser URL and a corresponding IdP configuration is successfully loaded, the right-hand authentication panel is fully driven by the IdP data.
 
-- The login form is **not** rendered until the IdP configuration request is completed.
-- If the request succeeds:
+- Until the IdP configuration request is completed, the authentication panel does **not** render either the login form or the user information panel.
+- If the request succeeds and there are no tokens for the current IAM client:
   - The panel header uses the IdP `name` field as the service name.
     - The title becomes: `Welcome to <name>`.
     - Example: for `name = "ServiceName"` the title is rendered as `Welcome to ServiceName`.
   - The panel subtitle is taken from the IdP `description` field.
     - Example:
       `Sign in to access ServiceName application via the OIDC (OpenID Connect) authentication protocol.`
+  - Below the header, the `LoginPanel` component renders the `LoginForm` that lets the user enter credentials.
+- If the request succeeds and valid tokens are already available for the current IAM client (for example, after restoring them from `localStorage`), the authentication panel can immediately render the `UserInfoPanel` instead of the login form, as described in the sections below.
 
-If `idp_uuid` is missing or empty, or the IdP configuration cannot be loaded or validated, the application does **not** render the login form. Instead, it shows the `AuthErrorPanel` component explaining that the identity provider configuration is not available and that the login page cannot be used.
+If `idp_uuid` is missing or empty, or the IdP configuration cannot be loaded or validated, the application does **not** render the login form or the user information panel. Instead, it shows the `AuthErrorPanel` component explaining that the identity provider configuration is not available and that the login page cannot be used.
 
 ## IdP loading, success, and error states
 
@@ -115,41 +118,53 @@ The error component:
 - Includes a `Retry` action that triggers another attempt to load the IdP configuration.
 - Can be reused for other authentication errors in the future (for example, login failures or token issues), not only for IdP loading failures.
 
-In the current version of the application, the main screen focuses on the login flow. After a successful login, additional logic (navigation, displaying protected screens, etc.) is **intentionally not executed** — tokens are only stored for later use.
+In the current version of the application, the main screen focuses on the login and user confirmation flow. After a successful login, the application loads the user profile and shows it in the `UserInfoPanel`, but it still does **not** navigate to protected screens — tokens and profile data are only stored and can be reused later by other parts of the application.
 
 ## User authentication flow
 
 1. The user opens the single-page `genesis_oidc_ui` application.
-2. The root application component renders the `LoginPanel` component, which contains the `LoginForm`.
-3. The user enters a username and password and chooses whether to enable the `Remember me on this computer` checkbox (it is unchecked by default).
-4. When the form is submitted:
+2. The root application component renders the authentication layout (`AuthLayout`) with the left-hand `AuthHero` block and the right-hand authentication panel.
+3. If an IdP configuration is successfully loaded and there are no tokens for the current IAM client, the authentication panel renders the `LoginPanel` with the `LoginForm`.
+4. The user enters a username and password and chooses whether to enable the `Remember me on this computer` checkbox (it is unchecked by default).
+5. When the form is submitted:
    - a basic check is performed to ensure that username and password are not empty;
    - the `loginWithPassword` function from the `authClient` module is called with parameters:
      - `username` — the user's login;
      - `password` — the user's password;
      - `rememberMe` — a boolean flag that corresponds to the state of the `Remember me on this computer` checkbox (when `true`, tokens are saved in `localStorage`; when `false`, tokens are stored only in memory);
      - `scope` — the access scope string (for example, `project:default`).
-5. The `loginWithPassword` function calls the backend token endpoint and receives a token response.
-6. On a successful response, the `authClient` module passes tokens to `tokenStorage`, which:
+6. The `loginWithPassword` function calls the backend token endpoint and receives a token response.
+7. On a successful response, the `authClient` module passes tokens to `tokenStorage`, which:
    - updates tokens in memory;
    - when `rememberMe = true`, saves them to `localStorage` in addition to memory;
    - when `rememberMe = false`, keeps them only in memory so that they are cleared after a page reload;
    - stores the `currentUser` value in `localStorage` only when `rememberMe = true`, and clears it when `rememberMe = false`.
-7. At this stage no additional logic is executed (no screen switch, no page navigation, etc.). Tokens are only stored and can be used later by other parts of the application.
+8. After tokens are stored, the application calls the `me` endpoint via the `authClient` module using the current access token to resolve the `CurrentUserProfile` for the authenticated user.
+9. If the `me` request succeeds:
+   - the right-hand authentication panel switches from the `LoginPanel` to the `UserInfoPanel`;
+   - `UserInfoPanel` displays the user profile fields (such as full name, username, email, and UUID), IAM client information (for example, the current IAM client identifier) and token status badges;
+   - the header uses the IdP `name` in a phrase such as `<name> is requesting access to`, and the subtitle asks the user to review the information below;
+   - the primary `Provide data` action logs the confirmation event to the browser console (future versions can attach additional logic to this button);
+   - the secondary `Sign out` action clears tokens via `tokenStorage.clearAll()` and returns the UI to the unauthenticated login state.
+10. If the `me` request fails for any reason (for example, expired or invalid tokens, network error, or server error):
+    - the error is logged to the browser console using `console.error(...)`;
+    - `tokenStorage.clearAll()` is called to remove all tokens and the stored current user;
+    - the application ends up in an unauthenticated state and renders the `LoginPanel` again. The same logic is applied when tokens are restored from `localStorage` during app initialization.
 
 ## Visual design of the login page
 
 The login page is a full-screen view with a gradient background and a two-column layout.
 
 - On the left there is the `AuthHero` block with an animated logo and a dynamic tagline.
-- On the right there is the `LoginPanel`, which either:
-  - shows a loading or error state when IdP configuration is being loaded or failed to load, or
-  - displays the login form with a header and subtitle (either generic or driven by the IdP configuration).
+- On the right there is the authentication panel, which can render different components depending on the state:
+  - a loading or error view when IdP configuration is being loaded or failed to load;
+  - the `LoginPanel` with the login form and its header/subtitle when the user is not authenticated;
+  - the `UserInfoPanel` with the authenticated user profile when valid tokens and a user profile are available.
 
 The `AuthLayout` component is responsible for the page layout:
 
 - it sets the background for the full browser window height;
-- it vertically and horizontally centers `AuthHero` and `LoginPanel`;
+- it vertically and horizontally centers `AuthHero` and the right-hand authentication panel;
 - it adapts the layout for mobile devices (columns collapse into rows).
 
 The `AuthHero` component contains:
@@ -158,7 +173,22 @@ The `AuthHero` component contains:
 - a product title;
 - the `DynamicTagline` component, which displays one phrase from a predefined set and periodically changes it with a small random delay.
 
-This visual layer does not change the authentication flow itself: after a successful login the application still only sends a request to the token endpoint and stores tokens in the storage, without navigating to other screens.
+This visual layer does not change the backend interaction model: after a successful login the application still only communicates with the token and user-profile (`me`) endpoints and does not navigate to other screens. All further navigation and business logic are expected to be implemented by the integrating application.
+
+## User information and confirmation panel (`UserInfoPanel`)
+
+The `UserInfoPanel` component is rendered on the right-hand side of the layout when a user is already authenticated (for example, immediately after a successful login or after restoring tokens from `localStorage`). It reuses the same visual style as the login panel but presents the content as an ID-card-like user profile:
+
+- A header that uses the IdP `name` in a phrase such as `<name> is requesting access to` and a short subtitle asking the user to review the information below.
+- A compact "ID card" with:
+  - user profile fields such as full name, description, username, email domain, and user UUID (`CurrentUserProfile`);
+  - IAM client information such as the current IAM client name and identifier.
+- A collapsible **Permissions requested** section below the ID card that is collapsed by default and, when expanded, shows the OIDC scopes requested by the application as a set of small badges. These scopes are loaded from the `/genesis/v1/iam/authorization_requests/<auth_uuid>` endpoint, where `auth_uuid` is taken from the `auth_uuid` query parameter in the current page URL. The `scope` string from the backend response is split into individual scopes before rendering.
+- An actions block with:
+  - a primary **Provide data** button that, in the current version, logs the confirmation click to the browser console (future versions can attach additional behavior, such as navigation or callbacks);
+  - a secondary **Sign out** button that clears tokens via `tokenStorage.clearAll()` and returns the UI to the unauthenticated login state.
+
+The same rules that apply to the login panel layout (alignment, spacing, and responsiveness) also apply to the user information panel, so switching between `LoginPanel` and `UserInfoPanel` does not change the overall page layout.
 
 ## Interaction with the backend
 

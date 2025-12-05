@@ -20,17 +20,34 @@ import { AuthErrorPanel } from './components/auth/AuthErrorPanel';
 import { AuthHero } from './components/auth/AuthHero';
 import { AuthLoadingPanel } from './components/auth/AuthLoadingPanel';
 import { LoginPanel } from './components/auth/LoginPanel';
+import { UserInfoPanel } from './components/auth/UserInfoPanel';
 import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
+import {
+  fetchCurrentUserProfile,
+  type CurrentUserProfile,
+} from './services/authClient';
+import { fetchIamClientByUuid } from './services/iamClientApi';
+import { fetchAuthorizationRequestByUuid, getAuthUuidFromUrl } from './services/authorizationRequestApi';
 import { fetchIdpByUuid, getIdpUuidFromUrl, type IdpConfig } from './services/idpClient';
-import { initializeTokensFromStorage } from './services/tokenStorage';
+import {
+  initializeTokensFromStorage,
+  tokenStorage,
+  type AuthTokens,
+} from './services/tokenStorage';
 import { setIamClientUuid } from './services/iamClientContext';
 
 function App(): JSX.Element {
   const [idpUuid] = useState<string | null>(() => getIdpUuidFromUrl());
+  const [authUuid] = useState<string | null>(() => getAuthUuidFromUrl());
   const [idpConfig, setIdpConfig] = useState<IdpConfig | null>(null);
   const [idpLoading, setIdpLoading] = useState<boolean>(Boolean(idpUuid));
   const [idpErrorMessage, setIdpErrorMessage] = useState<string | null>(null);
   const [idpErrorDetails, setIdpErrorDetails] = useState<string | null>(null);
+  const [tokens, setTokens] = useState<AuthTokens>({ token: null, refreshToken: null });
+  const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
+  const [iamClientName, setIamClientName] = useState<string | null>(null);
+  const [requestedScopes, setRequestedScopes] = useState<string[] | null>(null);
 
   const loadIdpConfig = async (): Promise<void> => {
     if (!idpUuid) {
@@ -79,12 +96,14 @@ function App(): JSX.Element {
   useEffect(() => {
     if (!idpConfig) {
       setIamClientUuid(null);
+      setIamClientName(null);
       return;
     }
 
     const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
     if (!iamClient) {
       setIamClientUuid(null);
+      setIamClientName(null);
       return;
     }
 
@@ -92,8 +111,155 @@ function App(): JSX.Element {
     initializeTokensFromStorage();
   }, [idpConfig]);
 
+  useEffect(() => {
+    if (!authUuid) {
+      setRequestedScopes(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const info = await fetchAuthorizationRequestByUuid(authUuid);
+        if (isCancelled) {
+          return;
+        }
+
+        const scopeRaw = typeof info.scope === 'string' ? info.scope.trim() : '';
+        const scopes = scopeRaw ? scopeRaw.split(/\s+/).filter(Boolean) : [];
+        setRequestedScopes(scopes.length > 0 ? scopes : null);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error('Failed to load authorization request scopes', error);
+        setRequestedScopes(null);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authUuid]);
+
+  useEffect(() => {
+    if (!idpConfig) {
+      setIamClientName(null);
+      return;
+    }
+
+    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+    if (!iamClient) {
+      setIamClientName(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const info = await fetchIamClientByUuid(iamClient);
+        if (isCancelled) {
+          return;
+        }
+
+        const name = typeof info.name === 'string' ? info.name.trim() : '';
+        setIamClientName(name || iamClient);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error('Failed to load IAM client information', error);
+        setIamClientName(iamClient);
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [idpConfig]);
+
+  useEffect(() => {
+    if (!idpConfig) {
+      setTokens({ token: null, refreshToken: null });
+      setCurrentUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const unsubscribe = tokenStorage.subscribe((nextTokens) => {
+      if (isCancelled) {
+        return;
+      }
+
+      setTokens(nextTokens);
+
+      const hasAnyToken = Boolean(nextTokens.token) || Boolean(nextTokens.refreshToken);
+
+      if (!hasAnyToken) {
+        setCurrentUserProfile(null);
+        setIsProfileLoading(false);
+        return;
+      }
+
+      setIsProfileLoading(true);
+
+      void (async () => {
+        try {
+          const profile = await fetchCurrentUserProfile();
+
+          if (isCancelled) {
+            return;
+          }
+
+          if (!profile) {
+            // eslint-disable-next-line no-console
+            console.error(
+              'Failed to resolve current user profile. Clearing tokens and returning to login form.',
+            );
+            tokenStorage.clearAll();
+            setCurrentUserProfile(null);
+            return;
+          }
+
+          setCurrentUserProfile(profile);
+        } catch (error) {
+          if (isCancelled) {
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error(
+            'Unexpected error while resolving current user profile. Clearing tokens and returning to login form.',
+            error,
+          );
+          tokenStorage.clearAll();
+          setCurrentUserProfile(null);
+        } finally {
+          if (!isCancelled) {
+            setIsProfileLoading(false);
+          }
+        }
+      })();
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
+  }, [idpConfig]);
+
   const handleRetryLoadIdp = (): void => {
     void loadIdpConfig();
+  };
+
+  const handleSignOut = (): void => {
+    tokenStorage.clearAll();
+    setCurrentUserProfile(null);
   };
 
   const hasIdpInUrl = Boolean(idpUuid);
@@ -130,9 +296,25 @@ function App(): JSX.Element {
         />
       );
     } else {
-      panel = (
-        <LoginPanel title={`Welcome to ${idpConfig.name}`} subtitle={idpConfig.description} />
-      );
+      const hasAnyToken = Boolean(tokens.token) || Boolean(tokens.refreshToken);
+
+      if (hasAnyToken) {
+        panel = (
+          <UserInfoPanel
+            title={`${idpConfig.name} is`}
+            subtitle="requesting access to your information. Review the information below."
+            profile={currentUserProfile}
+            iamClientName={iamClientName ?? iamClient}
+            requestedScopes={requestedScopes ?? undefined}
+            isProfileLoading={isProfileLoading}
+            onSignOut={handleSignOut}
+          />
+        );
+      } else {
+        panel = (
+          <LoginPanel title={`Welcome to ${idpConfig.name}`} subtitle={idpConfig.description} />
+        );
+      }
     }
   } else {
     panel = <AuthLoadingPanel />;

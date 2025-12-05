@@ -108,6 +108,7 @@ export type CurrentUserProfile = {
   last_name: string | null;
   username: string | null;
   email: string | null;
+  description: string | null;
 };
 
 let refreshTimer: number | null = null;
@@ -260,6 +261,7 @@ type MeResponse = {
     last_name?: string;
     username?: string;
     email?: string;
+    description?: string;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -305,5 +307,6 @@ export async function fetchCurrentUserProfile(): Promise<CurrentUserProfile | nu
     last_name: user.last_name ?? null,
     username: user.username ?? null,
     email: user.email ?? null,
+    description: user.description ?? null,
   };
 }

@@ -120,6 +120,63 @@ body {
   color: #8a8b95;
 }
 
+.login-panel--loading,
+.login-panel--error {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-panel__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.login-panel__spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #ff668a;
+  animation: login-panel-spinner 0.9s linear infinite;
+}
+
+@keyframes login-panel-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-panel__error-details {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: #151623;
+  border: 1px solid #3b1f2a;
+  color: #f5f5f7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  font-size: 0.75rem;
+  max-height: 6.5em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.login-panel__error-details pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.login-panel__actions {
+  margin-top: 1.25rem;
+}
+
 .login-form {
   display: flex;
   flex-direction: column;

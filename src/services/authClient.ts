@@ -15,16 +15,54 @@
  */
 
 import { tokenStorage, type AuthTokens } from './tokenStorage';
+import { getIamClientUuid } from './iamClientContext';
 
 const GENESIS_BASE_URL =
   typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';
 
-const GENESIS_IAM_CLIENT_UUID = '00000000-0000-0000-0000-000000000000';
 const GENESIS_CLIENT_ID = 'GenesisCoreClientId';
 const GENESIS_CLIENT_SECRET = 'GenesisCoreSecret';
 
-const TOKEN_ENDPOINT = `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${GENESIS_IAM_CLIENT_UUID}/actions/get_token/invoke`;
-const ME_ENDPOINT = `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${GENESIS_IAM_CLIENT_UUID}/actions/me`;
+function getIamClientForRequests(): string {
+  const uuid = getIamClientUuid();
+  if (!uuid) {
+    throw new Error('IAM client UUID is not configured');
+  }
+
+  const trimmed = uuid.trim();
+  if (!trimmed) {
+    throw new Error('IAM client UUID is not configured');
+  }
+
+  return trimmed;
+}
+
+function getTokenEndpoint(): string {
+  if (!GENESIS_BASE_URL) {
+    throw new Error('Base URL is not available for token endpoint');
+  }
+
+  const clientUuid = getIamClientForRequests();
+  return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
+    clientUuid,
+  )}/actions/get_token/invoke`;
+}
+
+function getMeEndpoint(): string | null {
+  if (!GENESIS_BASE_URL) {
+    return null;
+  }
+
+  const uuid = getIamClientUuid();
+  const trimmed = typeof uuid === 'string' ? uuid.trim() : '';
+  if (!trimmed) {
+    return null;
+  }
+
+  return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
+    trimmed,
+  )}/actions/me`;
+}
 
 export type PasswordLoginParams = {
   username: string;
@@ -103,7 +141,9 @@ function computeRefreshDelaySeconds(meta: TokenMeta): number | null {
 }
 
 async function requestTokens(body: URLSearchParams, rememberMe: boolean): Promise<LoginResult> {
-  const response = await fetch(TOKEN_ENDPOINT, {
+  const endpoint = getTokenEndpoint();
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -227,11 +267,13 @@ type MeResponse = {
 
 export async function fetchCurrentUserProfile(): Promise<CurrentUserProfile | null> {
   const token = tokenStorage.getToken();
-  if (!token || !ME_ENDPOINT) {
+  const meEndpoint = getMeEndpoint();
+
+  if (!token || !meEndpoint) {
     return null;
   }
 
-  const response = await fetch(ME_ENDPOINT, {
+  const response = await fetch(meEndpoint, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

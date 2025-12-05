@@ -62,7 +62,9 @@ The IdP configuration object includes at least:
 - `scope: string`
 - `callback_uri: string`
 
-When `idp_uuid` is missing or empty, the request to the IdP endpoint is skipped, and the authentication flow described below continues to work without IdP-specific customization.
+The `iam_client` field contains the IAM client UUID that the UI uses when calling token-related backend endpoints and when building namespaced storage keys for tokens and the current user. The login form is only available when a valid `iam_client` value is present in the IdP configuration.
+
+When `idp_uuid` is missing or empty, or when the IdP configuration cannot be loaded or does not contain a valid `iam_client` value, the application treats this as a configuration error and renders the authentication error panel instead of the login form.
 
 ## Login panel behavior with IdP configuration
 
@@ -77,11 +79,7 @@ When an `idp_uuid` query parameter is present in the browser URL and a correspon
     - Example:
       `Sign in to access ServiceName application via the OIDC (OpenID Connect) authentication protocol.`
 
-If `idp_uuid` is missing or empty, the application does **not** make any IdP request and renders the login panel in its default static variant:
-
-- The header title is simply `Welcome`.
-- The subtitle is a generic description of the OIDC-based sign-in process.
-- The login form is displayed immediately without any IdP-specific customization.
+If `idp_uuid` is missing or empty, or the IdP configuration cannot be loaded or validated, the application does **not** render the login form. Instead, it shows the `AuthErrorPanel` component explaining that the identity provider configuration is not available and that the login page cannot be used.
 
 ## IdP loading, success, and error states
 
@@ -165,7 +163,7 @@ This visual layer does not change the authentication flow itself: after a succes
 
 ### Token endpoints
 
-The `authClient` module builds token endpoint URLs based on the current browser window base URL (`window.location`). Using this base, it defines:
+The `authClient` module builds token endpoint URLs based on the current browser window base URL (`window.location`). Using this base and the IAM client UUID from the loaded IdP configuration (`IdpConfig.iam_client`), it defines:
 
 - the endpoint for obtaining a token with username and password (`grant_type=password`);
 - the endpoint for refreshing a token using a refresh token (`grant_type=refresh_token`).
@@ -207,13 +205,16 @@ Tokens are represented by the `AuthTokens` type:
 
 - After each successful login or token refresh, `tokenStorage`:
   - updates token values in memory;
-  - when `setPersistentTokens` is used, additionally serializes them to `localStorage`.
-- A single `localStorage` key is used, which stores a JSON object with `token` and `refreshToken` fields.
+  - when `setPersistentTokens` is used, additionally serializes them to `localStorage` under a key that is namespaced by the current IAM client UUID.
+- For each IAM client UUID `<client_uuid>` the following keys are used:
+  - `genesis_oidc_ui.<client_uuid>.authTokens` — a JSON object with `token` and `refreshToken` fields;
+  - `genesis_oidc_ui.<client_uuid>.currentUser` — the last successfully authenticated username for that client.
 
 This allows the application to:
 
 - quickly access tokens from memory within the current session;
-- restore tokens when the page is reloaded, if they were saved with `rememberMe = true`.
+- restore tokens when the page is reloaded, if they were saved with `rememberMe = true`;
+- keep tokens for different IAM clients strictly isolated so that tokens issued for one client are never reused for another client.
 
 ### Current user
 

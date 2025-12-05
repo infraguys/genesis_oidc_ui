@@ -121,19 +121,20 @@ In the current version of the application, the main screen focuses on the login 
 
 1. The user opens the single-page `genesis_oidc_ui` application.
 2. The root application component renders the `LoginPanel` component, which contains the `LoginForm`.
-3. The user enters a username and password.
+3. The user enters a username and password and chooses whether to enable the `Remember me on this computer` checkbox (it is unchecked by default).
 4. When the form is submitted:
    - a basic check is performed to ensure that username and password are not empty;
    - the `loginWithPassword` function from the `authClient` module is called with parameters:
      - `username` — the user's login;
      - `password` — the user's password;
-     - `rememberMe = true` — enables saving tokens in `localStorage`;
+     - `rememberMe` — a boolean flag that corresponds to the state of the `Remember me on this computer` checkbox (when `true`, tokens are saved in `localStorage`; when `false`, tokens are stored only in memory);
      - `scope` — the access scope string (for example, `project:default`).
 5. The `loginWithPassword` function calls the backend token endpoint and receives a token response.
 6. On a successful response, the `authClient` module passes tokens to `tokenStorage`, which:
    - updates tokens in memory;
-   - saves them to `localStorage` when `rememberMe = true`;
-   - notifies all subscribers about the token change.
+   - when `rememberMe = true`, saves them to `localStorage` in addition to memory;
+   - when `rememberMe = false`, keeps them only in memory so that they are cleared after a page reload;
+   - stores the `currentUser` value in `localStorage` only when `rememberMe = true`, and clears it when `rememberMe = false`.
 7. At this stage no additional logic is executed (no screen switch, no page navigation, etc.). Tokens are only stored and can be used later by other parts of the application.
 
 ## Visual design of the login page
@@ -235,18 +236,34 @@ To keep the access token up to date, a refresh token and the `refreshAccessToken
 
 ## Manual testing of the authentication flow
 
-To test the basic login and token persistence scenario:
+To test the basic login and token storage behavior with and without persistence:
 
 1. Install dependencies and start the dev server:
    - `npm install`
    - `npm run dev`
 2. Open the application in the browser (typically `http://localhost:5173` or the port configured by Vite).
 3. Make sure the login page is displayed (`LoginPanel` with `LoginForm` inside `AuthLayout`/`AuthHero`).
+
+### Scenario A: login with "Remember me on this computer" enabled
+
 4. Enter a test username and password accepted by the authentication server.
-5. Submit the form and check:
+5. Enable the `Remember me on this computer` checkbox.
+6. Submit the form and check:
    - that the token endpoint request completed successfully (HTTP status 200);
    - that a token object appeared in `localStorage` (the key and value format depend on the `tokenStorage` implementation);
+   - that a `currentUser` value is stored in `localStorage` for the current IAM client UUID;
    - that after reloading the page tokens are restored from `localStorage`.
+
+### Scenario B: login without "Remember me on this computer"
+
+7. Reload the page to clear any in-memory tokens.
+8. Enter a test username and password again.
+9. Make sure the `Remember me on this computer` checkbox is **not** enabled.
+10. Submit the form and check:
+    - that the token endpoint request completed successfully (HTTP status 200);
+    - that no token object is written to `localStorage` for the current IAM client UUID;
+    - that no `currentUser` value remains in `localStorage` (or that it has been cleared by the new login);
+    - that after reloading the page the user is no longer authenticated because tokens were stored only in memory.
 
 At the current stage, after a successful login the application **does not** switch to another screen and does not perform any navigation. Further steps (showing a protected UI, sign-out flow, etc.) can be added later on top of the authentication flow described here.
 

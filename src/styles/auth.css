@@ -183,6 +183,32 @@ body {
   gap: 1.25rem;
 }
 
+.login-form__remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.login-form__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #9ea0b4;
+  cursor: pointer;
+}
+
+.login-form__remember-checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  accent-color: #ff668a;
+}
+
+.login-form__remember-label {
+  user-select: none;
+}
+
 .icon {
   width: 1.1rem;
   height: 1.1rem;

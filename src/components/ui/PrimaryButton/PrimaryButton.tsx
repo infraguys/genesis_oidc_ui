@@ -23,6 +23,8 @@ interface PrimaryButtonProps {
   type?: 'button' | 'submit' | 'reset';
   onClick?: () => void;
   fullWidth?: boolean;
+  disabled?: boolean;
+  title?: string;
 }
 
 export function PrimaryButton({
@@ -30,11 +32,13 @@ export function PrimaryButton({
   type = 'button',
   onClick,
   fullWidth,
+  disabled,
+  title,
 }: PrimaryButtonProps): JSX.Element {
   const className = fullWidth ? 'primary-button primary-button--full' : 'primary-button';
 
   return (
-    <button type={type} onClick={onClick} className={className}>
+    <button type={type} onClick={onClick} className={className} disabled={disabled} title={title}>
       {children}
     </button>
   );

@@ -26,6 +26,9 @@ interface UserInfoPanelProps {
   requestedScopes?: string[] | null;
   isProfileLoading: boolean;
   onSignOut: () => void;
+  onProvideData: () => void;
+  isProvideDataDisabled?: boolean;
+  provideDataDisabledReason?: string;
 }
 
 function getDisplayName(profile: CurrentUserProfile | null): string {
@@ -126,6 +129,9 @@ export function UserInfoPanel({
   requestedScopes,
   isProfileLoading,
   onSignOut,
+  onProvideData,
+  isProvideDataDisabled,
+  provideDataDisabledReason,
 }: UserInfoPanelProps): JSX.Element {
   const displayName = getDisplayName(profile);
   const avatarInitials = getAvatarInitials(profile);
@@ -140,13 +146,12 @@ export function UserInfoPanel({
   const [isScopesExpanded, setIsScopesExpanded] = useState<boolean>(false);
 
   const handleProvideDataClick = (): void => {
-    // eslint-disable-next-line no-console
-    console.log('Provide data clicked', {
-      iamClientName,
-      userId,
-      username,
-      email,
-    });
+    const isDisabled = Boolean(isProvideDataDisabled);
+    if (isDisabled) {
+      return;
+    }
+
+    onProvideData();
   };
 
   const handleCopyUserId = (): void => {
@@ -321,7 +326,13 @@ export function UserInfoPanel({
         </div>
 
         <div className="user-info-panel__actions">
-          <PrimaryButton type="button" fullWidth onClick={handleProvideDataClick}>
+          <PrimaryButton
+            type="button"
+            fullWidth
+            onClick={handleProvideDataClick}
+            disabled={Boolean(isProvideDataDisabled)}
+            title={isProvideDataDisabled ? provideDataDisabledReason : undefined}
+          >
             Provide data
           </PrimaryButton>
           <button

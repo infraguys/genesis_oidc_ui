@@ -1,4 +1,4 @@
-<!--
+  <!--
 Copyright 2025 Genesis Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -144,7 +144,7 @@ In the current version of the application, the main screen focuses on the login 
    - the right-hand authentication panel switches from the `LoginPanel` to the `UserInfoPanel`;
    - `UserInfoPanel` displays the user profile fields (such as full name, username, email, and UUID), IAM client information (for example, the current IAM client identifier) and token status badges;
    - the header uses the IdP `name` in a phrase such as `<name> is requesting access to`, and the subtitle asks the user to review the information below;
-   - the primary `Provide data` action logs the confirmation event to the browser console (future versions can attach additional logic to this button);
+   - the primary `Provide data` action confirms the current authorization request (identified by the `auth_uuid` query parameter) by calling the backend endpoint described in `authorization-flow.md` and, on success, redirects the browser to the final redirect URL returned by the backend;
    - the secondary `Sign out` action clears tokens via `tokenStorage.clearAll()` and returns the UI to the unauthenticated login state.
 10. If the `me` request fails for any reason (for example, expired or invalid tokens, network error, or server error):
     - the error is logged to the browser console using `console.error(...)`;
@@ -185,7 +185,7 @@ The `UserInfoPanel` component is rendered on the right-hand side of the layout w
   - IAM client information such as the current IAM client name and identifier.
 - A collapsible **Permissions requested** section below the ID card that is collapsed by default and, when expanded, shows the OIDC scopes requested by the application as a set of small badges. These scopes are loaded from the `/genesis/v1/iam/authorization_requests/<auth_uuid>` endpoint, where `auth_uuid` is taken from the `auth_uuid` query parameter in the current page URL. The `scope` string from the backend response is split into individual scopes before rendering.
 - An actions block with:
-  - a primary **Provide data** button that, in the current version, logs the confirmation click to the browser console (future versions can attach additional behavior, such as navigation or callbacks);
+  - a primary **Provide data** button that confirms the current authorization request (identified by the `auth_uuid` query parameter) by calling the backend endpoint described in `authorization-flow.md` and, on success, redirects the browser to the final redirect URL returned by the backend;
   - a secondary **Sign out** button that clears tokens via `tokenStorage.clearAll()` and returns the UI to the unauthenticated login state.
 
 The same rules that apply to the login panel layout (alignment, spacing, and responsiveness) also apply to the user information panel, so switching between `LoginPanel` and `UserInfoPanel` does not change the overall page layout.

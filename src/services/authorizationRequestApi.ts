@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { tokenStorage } from "./tokenStorage";
+
 const GENESIS_BASE_URL =
   typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}` : "";
 
@@ -27,6 +29,11 @@ export type AuthorizationRequestInfo = {
   updated_at: string;
   scope: string | null;
   expiration_time_at?: string;
+  [key: string]: unknown;
+};
+
+type AuthorizationConfirmationResponse = {
+  redirect_url?: string | null;
   [key: string]: unknown;
 };
 
@@ -80,4 +87,60 @@ export async function fetchAuthorizationRequestByUuid(
 
   const data = (await response.json()) as AuthorizationRequestInfo;
   return data;
+}
+
+export async function confirmAuthorizationRequest(authUuid: string): Promise<string> {
+  if (!AUTHORIZATION_REQUEST_ENDPOINT_BASE) {
+    throw new Error("Cannot call authorization request endpoint: base URL is not available");
+  }
+
+  const trimmed = typeof authUuid === "string" ? authUuid.trim() : "";
+  if (!trimmed) {
+    throw new Error("Authorization request UUID is not configured");
+  }
+
+  const token = tokenStorage.getToken();
+  if (!token) {
+    throw new Error("Cannot confirm authorization request: access token is not available");
+  }
+
+  const url = `${AUTHORIZATION_REQUEST_ENDPOINT_BASE}/${encodeURIComponent(
+    trimmed,
+  )}/actions/confirm/invoke`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      `Authorization confirmation endpoint responded with ${response.status} ${response.statusText}: ${
+        text || "no body"
+      }`,
+    );
+  }
+
+  let data: AuthorizationConfirmationResponse;
+  try {
+    data = (await response.json()) as AuthorizationConfirmationResponse;
+  } catch (error) {
+    throw new Error(
+      `Authorization confirmation endpoint did not return a valid JSON body: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const rawRedirectUrl = data.redirect_url;
+  const redirectUrl = typeof rawRedirectUrl === "string" ? rawRedirectUrl.trim() : "";
+
+  if (!redirectUrl) {
+    throw new Error("Authorization confirmation endpoint did not provide redirect_url in the response");
+  }
+
+  return redirectUrl;
 }

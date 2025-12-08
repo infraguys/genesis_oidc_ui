@@ -27,7 +27,11 @@ import {
   type CurrentUserProfile,
 } from './services/authClient';
 import { fetchIamClientByUuid } from './services/iamClientApi';
-import { fetchAuthorizationRequestByUuid, getAuthUuidFromUrl } from './services/authorizationRequestApi';
+import {
+  fetchAuthorizationRequestByUuid,
+  getAuthUuidFromUrl,
+  confirmAuthorizationRequest,
+} from './services/authorizationRequestApi';
 import { fetchIdpByUuid, getIdpUuidFromUrl, type IdpConfig } from './services/idpClient';
 import {
   initializeTokensFromStorage,
@@ -48,6 +52,9 @@ function App(): JSX.Element {
   const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
   const [iamClientName, setIamClientName] = useState<string | null>(null);
   const [requestedScopes, setRequestedScopes] = useState<string[] | null>(null);
+  const [authorizationErrorMessage, setAuthorizationErrorMessage] = useState<string | null>(null);
+  const [authorizationErrorDetails, setAuthorizationErrorDetails] = useState<string | null>(null);
+  const [isConfirmingAuthorization, setIsConfirmingAuthorization] = useState<boolean>(false);
 
   const loadIdpConfig = async (): Promise<void> => {
     if (!idpUuid) {
@@ -260,9 +267,53 @@ function App(): JSX.Element {
   const handleSignOut = (): void => {
     tokenStorage.clearAll();
     setCurrentUserProfile(null);
+    setAuthorizationErrorMessage(null);
+    setAuthorizationErrorDetails(null);
+    setIsConfirmingAuthorization(false);
   };
 
   const hasIdpInUrl = Boolean(idpUuid);
+
+  const handleProvideData = async (): Promise<void> => {
+    if (!authUuid || isConfirmingAuthorization) {
+      return;
+    }
+
+    setAuthorizationErrorMessage(null);
+    setAuthorizationErrorDetails(null);
+    setIsConfirmingAuthorization(true);
+
+    try {
+      const redirectUrl = await confirmAuthorizationRequest(authUuid);
+      if (typeof window !== 'undefined' && redirectUrl) {
+        window.location.assign(redirectUrl);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to confirm authorization request', error);
+
+      setAuthorizationErrorMessage(
+        'Unable to complete authorization request. Please try again later.',
+      );
+
+      let details: string;
+      if (error instanceof Error) {
+        details = error.message;
+      } else if (typeof error === 'string') {
+        details = error;
+      } else {
+        try {
+          details = JSON.stringify(error);
+        } catch {
+          details = String(error);
+        }
+      }
+
+      setAuthorizationErrorDetails(details);
+    } finally {
+      setIsConfirmingAuthorization(false);
+    }
+  };
 
   let panel: JSX.Element;
 
@@ -285,6 +336,14 @@ function App(): JSX.Element {
         retryLabel="Retry"
       />
     );
+  } else if (authorizationErrorMessage) {
+    panel = (
+      <AuthErrorPanel
+        title="Unable to complete authorization"
+        message={authorizationErrorMessage}
+        details={authorizationErrorDetails ?? undefined}
+      />
+    );
   } else if (idpConfig) {
     const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
 
@@ -297,6 +356,11 @@ function App(): JSX.Element {
       );
     } else {
       const hasAnyToken = Boolean(tokens.token) || Boolean(tokens.refreshToken);
+      const isProvideDataDisabled =
+        !authUuid || isConfirmingAuthorization || !currentUserProfile || isProfileLoading;
+      const provideDataDisabledReason = !authUuid
+        ? 'Authorization request identifier (auth_uuid) is missing in the current URL.'
+        : undefined;
 
       if (hasAnyToken) {
         panel = (
@@ -308,6 +372,9 @@ function App(): JSX.Element {
             requestedScopes={requestedScopes ?? undefined}
             isProfileLoading={isProfileLoading}
             onSignOut={handleSignOut}
+            onProvideData={handleProvideData}
+            isProvideDataDisabled={isProvideDataDisabled}
+            provideDataDisabledReason={provideDataDisabledReason}
           />
         );
       } else {

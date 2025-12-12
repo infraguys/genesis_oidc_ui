@@ -14,14 +14,26 @@
  * limitations under the License.
  */
 
-import { getLastPathSegment } from './identifierUtils';
+export function getTrimmedQueryParam(
+  paramName: string,
+  currentLocation?: Location,
+): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
-let currentIamClientUuid: string | null = null;
+  const search = currentLocation?.search ?? window.location.search;
+  if (!search) {
+    return null;
+  }
 
-export function setIamClientUuid(uuid: string | null): void {
-  currentIamClientUuid = getLastPathSegment(uuid);
-}
+  const params = new URLSearchParams(search);
+  const raw = params.get(paramName);
 
-export function getIamClientUuid(): string | null {
-  return currentIamClientUuid;
+  if (!raw) {
+    return null;
+  }
+
+  const trimmed = raw.trim();
+  return trimmed === '' ? null : trimmed;
 }

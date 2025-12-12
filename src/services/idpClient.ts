@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-const GENESIS_BASE_URL =
-  typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';
+import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { getTrimmedQueryParam } from './queryParams';
 
 const IDP_ENDPOINT_BASE = GENESIS_BASE_URL ? `${GENESIS_BASE_URL}/genesis/v1/iam/idp` : '';
 
@@ -34,24 +34,7 @@ export type IdpConfig = {
 };
 
 export function getIdpUuidFromUrl(currentLocation?: Location): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const search = currentLocation?.search ?? window.location.search;
-  if (!search) {
-    return null;
-  }
-
-  const params = new URLSearchParams(search);
-  const raw = params.get('idp_uuid');
-
-  if (!raw) {
-    return null;
-  }
-
-  const trimmed = raw.trim();
-  return trimmed === '' ? null : trimmed;
+  return getTrimmedQueryParam('idp_uuid', currentLocation);
 }
 
 export async function fetchIdpByUuid(idpUuid: string): Promise<IdpConfig> {

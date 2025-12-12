@@ -15,21 +15,14 @@
  */
 
 import { tokenStorage, type AuthTokens } from './tokenStorage';
+import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { getIamClientUuid } from './iamClientContext';
-
-const GENESIS_BASE_URL =
-  typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';
 
 const GENESIS_CLIENT_ID = 'GenesisCoreClientId';
 const GENESIS_CLIENT_SECRET = 'GenesisCoreSecret';
 
 function getIamClientForRequests(): string {
-  const uuid = getIamClientUuid();
-  if (!uuid) {
-    throw new Error('IAM client UUID is not configured');
-  }
-
-  const trimmed = uuid.trim();
+  const trimmed = getIamClientUuid()?.trim() ?? '';
   if (!trimmed) {
     throw new Error('IAM client UUID is not configured');
   }
@@ -53,8 +46,7 @@ function getMeEndpoint(): string | null {
     return null;
   }
 
-  const uuid = getIamClientUuid();
-  const trimmed = typeof uuid === 'string' ? uuid.trim() : '';
+  const trimmed = getIamClientUuid()?.trim() ?? '';
   if (!trimmed) {
     return null;
   }

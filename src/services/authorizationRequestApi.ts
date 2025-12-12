@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import { tokenStorage } from "./tokenStorage";
-
-const GENESIS_BASE_URL =
-  typeof window !== "undefined" ? `${window.location.protocol}//${window.location.host}` : "";
+import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { getTrimmedQueryParam } from './queryParams';
+import { tokenStorage } from './tokenStorage';
 
 const AUTHORIZATION_REQUEST_ENDPOINT_BASE = GENESIS_BASE_URL
   ? `${GENESIS_BASE_URL}/genesis/v1/iam/authorization_requests`
-  : "";
+  : '';
 
 export type AuthorizationRequestInfo = {
   uuid: string;
@@ -37,50 +36,39 @@ type AuthorizationConfirmationResponse = {
   [key: string]: unknown;
 };
 
+function getAuthUuidForRequests(authUuid: string): string {
+  const trimmed = typeof authUuid === 'string' ? authUuid.trim() : '';
+  if (!trimmed) {
+    throw new Error('Authorization request UUID is not configured');
+  }
+
+  return trimmed;
+}
+
 export function getAuthUuidFromUrl(currentLocation?: Location): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const search = currentLocation?.search ?? window.location.search;
-  if (!search) {
-    return null;
-  }
-
-  const params = new URLSearchParams(search);
-  const raw = params.get("auth_uuid");
-
-  if (!raw) {
-    return null;
-  }
-
-  const trimmed = raw.trim();
-  return trimmed === "" ? null : trimmed;
+  return getTrimmedQueryParam('auth_uuid', currentLocation);
 }
 
 export async function fetchAuthorizationRequestByUuid(
   authUuid: string,
 ): Promise<AuthorizationRequestInfo> {
   if (!AUTHORIZATION_REQUEST_ENDPOINT_BASE) {
-    throw new Error("Cannot call authorization request endpoint: base URL is not available");
+    throw new Error('Cannot call authorization request endpoint: base URL is not available');
   }
 
-  const trimmed = typeof authUuid === "string" ? authUuid.trim() : "";
-  if (!trimmed) {
-    throw new Error("Authorization request UUID is not configured");
-  }
+  const trimmed = getAuthUuidForRequests(authUuid);
 
   const url = `${AUTHORIZATION_REQUEST_ENDPOINT_BASE}/${encodeURIComponent(trimmed)}`;
 
   const response = await fetch(url, {
-    method: "GET",
+    method: 'GET',
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
+    const text = await response.text().catch(() => '');
     throw new Error(
       `Authorization request endpoint responded with ${response.status} ${response.statusText}: ${
-        text || "no body"
+        text || 'no body'
       }`,
     );
   }
@@ -91,17 +79,14 @@ export async function fetchAuthorizationRequestByUuid(
 
 export async function confirmAuthorizationRequest(authUuid: string): Promise<string> {
   if (!AUTHORIZATION_REQUEST_ENDPOINT_BASE) {
-    throw new Error("Cannot call authorization request endpoint: base URL is not available");
+    throw new Error('Cannot call authorization request endpoint: base URL is not available');
   }
 
-  const trimmed = typeof authUuid === "string" ? authUuid.trim() : "";
-  if (!trimmed) {
-    throw new Error("Authorization request UUID is not configured");
-  }
+  const trimmed = getAuthUuidForRequests(authUuid);
 
   const token = tokenStorage.getToken();
   if (!token) {
-    throw new Error("Cannot confirm authorization request: access token is not available");
+    throw new Error('Cannot confirm authorization request: access token is not available');
   }
 
   const url = `${AUTHORIZATION_REQUEST_ENDPOINT_BASE}/${encodeURIComponent(
@@ -109,17 +94,17 @@ export async function confirmAuthorizationRequest(authUuid: string): Promise<str
   )}/actions/confirm/invoke`;
 
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
+    const text = await response.text().catch(() => '');
     throw new Error(
       `Authorization confirmation endpoint responded with ${response.status} ${response.statusText}: ${
-        text || "no body"
+        text || 'no body'
       }`,
     );
   }
@@ -136,10 +121,12 @@ export async function confirmAuthorizationRequest(authUuid: string): Promise<str
   }
 
   const rawRedirectUrl = data.redirect_url;
-  const redirectUrl = typeof rawRedirectUrl === "string" ? rawRedirectUrl.trim() : "";
+  const redirectUrl = typeof rawRedirectUrl === 'string' ? rawRedirectUrl.trim() : '';
 
   if (!redirectUrl) {
-    throw new Error("Authorization confirmation endpoint did not provide redirect_url in the response");
+    throw new Error(
+      'Authorization confirmation endpoint did not provide redirect_url in the response',
+    );
   }
 
   return redirectUrl;

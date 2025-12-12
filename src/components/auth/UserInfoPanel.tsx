@@ -31,6 +31,15 @@ interface UserInfoPanelProps {
   provideDataDisabledReason?: string;
 }
 
+interface CopyableFieldProps {
+  label: string;
+  value: string;
+  allowContextMenu?: boolean;
+  canCopy?: boolean;
+  onCopy?: () => void;
+  copyAriaLabel?: string;
+}
+
 function getDisplayName(profile: CurrentUserProfile | null): string {
   if (!profile) {
     return '';
@@ -121,6 +130,37 @@ async function copyToClipboard(value: string, debugLabel: string): Promise<void>
   }
 }
 
+function CopyableField({
+  label,
+  value,
+  allowContextMenu,
+  canCopy,
+  onCopy,
+  copyAriaLabel,
+}: CopyableFieldProps): JSX.Element {
+  return (
+    <div className="user-info-card__field">
+      <div className="user-info-card__label">{label}</div>
+      <div
+        className="user-info-card__value user-info-card__value--inline"
+        data-allow-context-menu={allowContextMenu ? 'true' : undefined}
+      >
+        <span className="user-info-card__id-text">{value}</span>
+        {canCopy && onCopy ? (
+          <button
+            type="button"
+            className="user-info-card__copy-button"
+            onClick={onCopy}
+            aria-label={copyAriaLabel}
+          >
+            <span className="user-info-card__copy-icon" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function UserInfoPanel({
   title,
   subtitle,
@@ -136,9 +176,9 @@ export function UserInfoPanel({
   const displayName = getDisplayName(profile);
   const avatarInitials = getAvatarInitials(profile);
 
-  const username = profile?.username?.trim() || null;
-  const email = profile?.email?.trim() || null;
-  const profileDescription = profile?.description?.trim() || null;
+  const username = profile?.username?.trim() ?? '';
+  const email = profile?.email?.trim() ?? '';
+  const profileDescription = profile?.description?.trim() ?? '';
   const emailDomain = email && email.includes('@') ? email.slice(email.indexOf('@')) : '';
   const userId = profile?.uuid?.trim() || '';
   const shortUserId = getShortUserId(userId);
@@ -159,23 +199,14 @@ export function UserInfoPanel({
   };
 
   const handleCopyIamClientName = (): void => {
-    if (!iamClientName) {
-      return;
-    }
     void copyToClipboard(iamClientName, 'IAM client name');
   };
 
   const handleCopyUsername = (): void => {
-    if (!username) {
-      return;
-    }
     void copyToClipboard(username, 'username');
   };
 
   const handleCopyEmail = (): void => {
-    if (!email) {
-      return;
-    }
     void copyToClipboard(email, 'email');
   };
 
@@ -212,78 +243,36 @@ export function UserInfoPanel({
           ) : (
             <div className="user-info-card__body">
               <div className="user-info-card__grid">
-                <div className="user-info-card__field">
-                  <div className="user-info-card__label">User ID</div>
-                  <div
-                    className="user-info-card__value user-info-card__value--inline"
-                    data-allow-context-menu="true"
-                  >
-                    <span className="user-info-card__id-text">{shortUserId || 'Unknown'}</span>
-                    {userId ? (
-                      <button
-                        type="button"
-                        className="user-info-card__copy-button"
-                        onClick={handleCopyUserId}
-                        aria-label="Copy full user ID"
-                      >
-                        <span className="user-info-card__copy-icon" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="user-info-card__field">
-                  <div className="user-info-card__label">IAM client</div>
-                  <div
-                    className="user-info-card__value user-info-card__value--inline"
-                    data-allow-context-menu="true"
-                  >
-                    <span className="user-info-card__id-text">
-                      {iamClientName || 'Unknown'}
-                    </span>
-                    {iamClientName ? (
-                      <button
-                        type="button"
-                        className="user-info-card__copy-button"
-                        onClick={handleCopyIamClientName}
-                        aria-label="Copy IAM client name"
-                      >
-                        <span className="user-info-card__copy-icon" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="user-info-card__field">
-                  <div className="user-info-card__label">Username</div>
-                  <div className="user-info-card__value user-info-card__value--inline">
-                    <span className="user-info-card__id-text">{username || 'Unknown'}</span>
-                    {username ? (
-                      <button
-                        type="button"
-                        className="user-info-card__copy-button"
-                        onClick={handleCopyUsername}
-                        aria-label="Copy username"
-                      >
-                        <span className="user-info-card__copy-icon" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="user-info-card__field">
-                  <div className="user-info-card__label">Email domain</div>
-                  <div className="user-info-card__value user-info-card__value--inline">
-                    <span className="user-info-card__id-text">{emailDomain || 'Unknown'}</span>
-                    {email ? (
-                      <button
-                        type="button"
-                        className="user-info-card__copy-button"
-                        onClick={handleCopyEmail}
-                        aria-label="Copy email"
-                      >
-                        <span className="user-info-card__copy-icon" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
+                <CopyableField
+                  label="User ID"
+                  value={shortUserId || 'Unknown'}
+                  allowContextMenu
+                  canCopy={Boolean(userId)}
+                  onCopy={handleCopyUserId}
+                  copyAriaLabel="Copy full user ID"
+                />
+                <CopyableField
+                  label="IAM client"
+                  value={iamClientName || 'Unknown'}
+                  allowContextMenu
+                  canCopy={Boolean(iamClientName)}
+                  onCopy={handleCopyIamClientName}
+                  copyAriaLabel="Copy IAM client name"
+                />
+                <CopyableField
+                  label="Username"
+                  value={username || 'Unknown'}
+                  canCopy={Boolean(username)}
+                  onCopy={handleCopyUsername}
+                  copyAriaLabel="Copy username"
+                />
+                <CopyableField
+                  label="Email domain"
+                  value={emailDomain || 'Unknown'}
+                  canCopy={Boolean(email)}
+                  onCopy={handleCopyEmail}
+                  copyAriaLabel="Copy email"
+                />
               </div>
 
               {requestedScopes && requestedScopes.length > 0 ? (

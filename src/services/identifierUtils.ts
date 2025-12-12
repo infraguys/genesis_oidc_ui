@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-import { getLastPathSegment } from './identifierUtils';
+export function getLastPathSegment(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
 
-let currentIamClientUuid: string | null = null;
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
 
-export function setIamClientUuid(uuid: string | null): void {
-  currentIamClientUuid = getLastPathSegment(uuid);
-}
+  const withoutTrailingSlash = trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+  const segments = withoutTrailingSlash.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    return null;
+  }
 
-export function getIamClientUuid(): string | null {
-  return currentIamClientUuid;
+  return segments[segments.length - 1];
 }

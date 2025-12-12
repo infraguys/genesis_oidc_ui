@@ -49,11 +49,7 @@ export function LoginForm(): JSX.Element {
         scope: 'project:default',
       });
 
-      if (rememberMe) {
-        tokenStorage.setCurrentUser(login);
-      } else {
-        tokenStorage.setCurrentUser(null);
-      }
+      tokenStorage.setCurrentUser(rememberMe ? login : null);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Login failed', error);

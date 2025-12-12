@@ -32,6 +32,7 @@ import {
   getAuthUuidFromUrl,
   confirmAuthorizationRequest,
 } from './services/authorizationRequestApi';
+import { formatErrorDetails } from './services/errorDetails';
 import { fetchIdpByUuid, getIdpUuidFromUrl, type IdpConfig } from './services/idpClient';
 import {
   initializeTokensFromStorage,
@@ -39,6 +40,10 @@ import {
   type AuthTokens,
 } from './services/tokenStorage';
 import { setIamClientUuid } from './services/iamClientContext';
+
+function getIamClientFromIdpConfig(config: IdpConfig | null): string {
+  return typeof config?.iam_client === 'string' ? config.iam_client.trim() : '';
+}
 
 function App(): JSX.Element {
   const [idpUuid] = useState<string | null>(() => getIdpUuidFromUrl());
@@ -72,20 +77,7 @@ function App(): JSX.Element {
       setIdpConfig(null);
       setIdpErrorMessage('Unable to load identity provider configuration. Please try again later.');
 
-      let details: string;
-      if (error instanceof Error) {
-        details = error.message;
-      } else if (typeof error === 'string') {
-        details = error;
-      } else {
-        try {
-          details = JSON.stringify(error);
-        } catch {
-          details = String(error);
-        }
-      }
-
-      setIdpErrorDetails(details);
+      setIdpErrorDetails(formatErrorDetails(error));
     } finally {
       setIdpLoading(false);
     }
@@ -101,13 +93,7 @@ function App(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (!idpConfig) {
-      setIamClientUuid(null);
-      setIamClientName(null);
-      return;
-    }
-
-    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+    const iamClient = getIamClientFromIdpConfig(idpConfig);
     if (!iamClient) {
       setIamClientUuid(null);
       setIamClientName(null);
@@ -152,12 +138,7 @@ function App(): JSX.Element {
   }, [authUuid]);
 
   useEffect(() => {
-    if (!idpConfig) {
-      setIamClientName(null);
-      return;
-    }
-
-    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+    const iamClient = getIamClientFromIdpConfig(idpConfig);
     if (!iamClient) {
       setIamClientName(null);
       return;
@@ -296,20 +277,7 @@ function App(): JSX.Element {
         'Unable to complete authorization request. Please try again later.',
       );
 
-      let details: string;
-      if (error instanceof Error) {
-        details = error.message;
-      } else if (typeof error === 'string') {
-        details = error;
-      } else {
-        try {
-          details = JSON.stringify(error);
-        } catch {
-          details = String(error);
-        }
-      }
-
-      setAuthorizationErrorDetails(details);
+      setAuthorizationErrorDetails(formatErrorDetails(error));
     } finally {
       setIsConfirmingAuthorization(false);
     }
@@ -345,7 +313,7 @@ function App(): JSX.Element {
       />
     );
   } else if (idpConfig) {
-    const iamClient = typeof idpConfig.iam_client === 'string' ? idpConfig.iam_client.trim() : '';
+    const iamClient = getIamClientFromIdpConfig(idpConfig);
 
     if (!iamClient) {
       panel = (

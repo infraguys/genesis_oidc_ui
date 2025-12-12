@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-const GENESIS_BASE_URL =
-  typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';
+import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { getLastPathSegment } from './identifierUtils';
 
 const IAM_CLIENT_ENDPOINT_BASE = GENESIS_BASE_URL
   ? `${GENESIS_BASE_URL}/genesis/v1/iam/clients`
@@ -33,18 +33,7 @@ export type IamClientInfo = {
 };
 
 function normalizeIamClientIdentifier(raw: string): string {
-  const trimmed = typeof raw === 'string' ? raw.trim() : '';
-  if (!trimmed) {
-    return '';
-  }
-
-  const withoutTrailingSlash = trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
-  const segments = withoutTrailingSlash.split('/').filter(Boolean);
-  if (segments.length === 0) {
-    return '';
-  }
-
-  return segments[segments.length - 1];
+  return getLastPathSegment(raw) ?? '';
 }
 
 export async function fetchIamClientByUuid(uuid: string): Promise<IamClientInfo> {

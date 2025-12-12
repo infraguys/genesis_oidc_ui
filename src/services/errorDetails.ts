@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-import { getLastPathSegment } from './identifierUtils';
+export function formatErrorDetails(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
 
-let currentIamClientUuid: string | null = null;
+  if (typeof error === 'string') {
+    return error;
+  }
 
-export function setIamClientUuid(uuid: string | null): void {
-  currentIamClientUuid = getLastPathSegment(uuid);
-}
-
-export function getIamClientUuid(): string | null {
-  return currentIamClientUuid;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }

@@ -14,14 +14,5 @@
  * limitations under the License.
  */
 
-import { getLastPathSegment } from './identifierUtils';
-
-let currentIamClientUuid: string | null = null;
-
-export function setIamClientUuid(uuid: string | null): void {
-  currentIamClientUuid = getLastPathSegment(uuid);
-}
-
-export function getIamClientUuid(): string | null {
-  return currentIamClientUuid;
-}
+export const GENESIS_BASE_URL =
+  typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';

@@ -32,31 +32,24 @@ const listeners = new Set<TokenListener>();
 const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 function getCurrentClientUuid(): string | null {
-  const uuid = getIamClientUuid();
-  if (!uuid) {
+  return getIamClientUuid();
+}
+
+function getStorageKey(suffix: string): string | null {
+  const clientUuid = getCurrentClientUuid();
+  if (!clientUuid) {
     return null;
   }
 
-  const trimmed = uuid.trim();
-  return trimmed === '' ? null : trimmed;
+  return `${STORAGE_KEY_PREFIX}${clientUuid}${suffix}`;
 }
 
 function getTokensStorageKey(): string | null {
-  const clientUuid = getCurrentClientUuid();
-  if (!clientUuid) {
-    return null;
-  }
-
-  return `${STORAGE_KEY_PREFIX}${clientUuid}${TOKENS_KEY_SUFFIX}`;
+  return getStorageKey(TOKENS_KEY_SUFFIX);
 }
 
 function getUserStorageKey(): string | null {
-  const clientUuid = getCurrentClientUuid();
-  if (!clientUuid) {
-    return null;
-  }
-
-  return `${STORAGE_KEY_PREFIX}${clientUuid}${USER_KEY_SUFFIX}`;
+  return getStorageKey(USER_KEY_SUFFIX);
 }
 
 function readPersistedTokens(): AuthTokens {

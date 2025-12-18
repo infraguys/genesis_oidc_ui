@@ -18,8 +18,19 @@ import { tokenStorage, type AuthTokens } from './tokenStorage';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { getIamClientUuid } from './iamClientContext';
 
-const GENESIS_CLIENT_ID = 'GenesisCoreClientId';
-const GENESIS_CLIENT_SECRET = 'GenesisCoreSecret';
+function getClientHeaders(): Record<string, string> {
+  const clientId = import.meta.env.GENESIS_CLIENT_ID;
+  const clientSecret = import.meta.env.GENESIS_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Genesis client credentials are not configured');
+  }
+
+  return {
+    'X-Client-Id': clientId,
+    'X-Client-Secret': clientSecret,
+  };
+}
 
 function getIamClientForRequests(): string {
   const trimmed = getIamClientUuid()?.trim() ?? '';
@@ -140,6 +151,7 @@ async function requestTokens(body: URLSearchParams, rememberMe: boolean): Promis
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      ...getClientHeaders(),
     },
     body,
   });
@@ -216,8 +228,6 @@ export async function loginWithPassword({
   body.set('grant_type', 'password');
   body.set('username', username);
   body.set('password', password);
-  body.set('client_id', GENESIS_CLIENT_ID);
-  body.set('client_secret', GENESIS_CLIENT_SECRET);
   body.set('scope', scope);
   return requestTokens(body, rememberMe);
 }

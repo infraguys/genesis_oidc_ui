@@ -14,51 +14,60 @@
  * limitations under the License.
  */
 
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: '0.0.0.0',
-    allowedHosts: ['auth.genesis-core.local'],
-    proxy: {
-      '/genesis': {
-        target: 'http://127.0.0.1:11010',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/genesis/, ''),
-        configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            const forwardedProto =
-              (req.headers['x-forwarded-proto'] as string | undefined) ?? 'http';
-            const forwardedHostHeader =
-              (req.headers['x-forwarded-host'] as string | undefined) ??
-              (req.headers.host as string | undefined);
+export default defineConfig(({ mode }) => {
+  const envDir = new URL('.', import.meta.url).pathname;
+  const env = loadEnv(mode, envDir, '');
 
-            let host = forwardedHostHeader;
-            let port: string | undefined;
+  return {
+    define: {
+      'import.meta.env.GENESIS_CLIENT_ID': JSON.stringify(env.GENESIS_CLIENT_ID ?? ''),
+      'import.meta.env.GENESIS_CLIENT_SECRET': JSON.stringify(env.GENESIS_CLIENT_SECRET ?? ''),
+    },
+    plugins: [react()],
+    server: {
+      host: '0.0.0.0',
+      allowedHosts: ['auth.genesis-core.local'],
+      proxy: {
+        '/genesis': {
+          target: 'http://127.0.0.1:11010',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/genesis/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              const forwardedProto =
+                (req.headers['x-forwarded-proto'] as string | undefined) ?? 'http';
+              const forwardedHostHeader =
+                (req.headers['x-forwarded-host'] as string | undefined) ??
+                (req.headers.host as string | undefined);
 
-            if (forwardedHostHeader && forwardedHostHeader.includes(':')) {
-              const [parsedHost, parsedPort] = forwardedHostHeader.split(':');
-              host = parsedHost;
-              port = parsedPort;
-            } else if (req.socket.localPort) {
-              port = String(req.socket.localPort);
-            }
+              let host = forwardedHostHeader;
+              let port: string | undefined;
 
-            if (host) {
-              proxyReq.setHeader('X-Forwarded-Host', host);
-            }
+              if (forwardedHostHeader && forwardedHostHeader.includes(':')) {
+                const [parsedHost, parsedPort] = forwardedHostHeader.split(':');
+                host = parsedHost;
+                port = parsedPort;
+              } else if (req.socket.localPort) {
+                port = String(req.socket.localPort);
+              }
 
-            if (port) {
-              proxyReq.setHeader('X-Forwarded-Port', port);
-            }
+              if (host) {
+                proxyReq.setHeader('X-Forwarded-Host', host);
+              }
 
-            proxyReq.setHeader('X-Forwarded-Proto', forwardedProto);
-            proxyReq.setHeader('X-Forwarded-Prefix', '/genesis');
-          });
+              if (port) {
+                proxyReq.setHeader('X-Forwarded-Port', port);
+              }
+
+              proxyReq.setHeader('X-Forwarded-Proto', forwardedProto);
+              proxyReq.setHeader('X-Forwarded-Prefix', '/genesis');
+            });
+          },
         },
       },
     },
-  },
+  };
 });

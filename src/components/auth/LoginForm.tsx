@@ -28,6 +28,7 @@ export function LoginForm(): JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -35,6 +36,8 @@ export function LoginForm(): JSX.Element {
     if (!login || !password || isSubmitting) {
       return;
     }
+
+    setError(null);
 
     if (!rememberMe) {
       tokenStorage.clearAll();
@@ -51,6 +54,7 @@ export function LoginForm(): JSX.Element {
 
       tokenStorage.setCurrentUser(rememberMe ? login : null);
     } catch (error) {
+      setError('Invalid username or password. Please try again.');
       // eslint-disable-next-line no-console
       console.error('Login failed', error);
     } finally {
@@ -99,6 +103,7 @@ export function LoginForm(): JSX.Element {
           <span className="login-form__remember-label">Remember me on this computer</span>
         </label>
       </div>
+      {error && <div className="login-form__error">{error}</div>}
       <PrimaryButton type="submit" fullWidth>
         {isSubmitting ? 'LOGGING IN…' : 'LOGIN'}
       </PrimaryButton>

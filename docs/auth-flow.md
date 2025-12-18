@@ -33,9 +33,11 @@ This document describes how the `genesis_oidc_ui` application implements:
 - **Services**
   - `authClient` — a module responsible for calling backend token endpoints and processing responses.
   - `tokenStorage` — a module that stores tokens in memory and in `localStorage` and notifies listeners when tokens change.
+ - **React context**
+   - `IamClientUuidContext` — a context that provides the current IAM client UUID derived from the loaded IdP configuration.
  - **Hooks**
    - `useIdp(idpUuid)` — a hook that loads the IdP configuration and manages its loading and error state.
-   - `useAuth(idpConfig)` — a hook that manages IAM client context, token subscription, and user profile loading.
+   - `useAuth(idpConfig)` — a hook that manages token subscription and user profile loading.
    - `useAuthorizationRequest(authUuid)` — a hook that loads requested scopes and confirms authorization requests (see `authorization-flow.md`).
 
 ## IdP configuration loading
@@ -68,6 +70,8 @@ The IdP configuration object includes at least:
 - `callback_uri: string`
 
 The `iam_client` field contains the IAM client UUID that the UI uses when calling token-related backend endpoints and when building namespaced storage keys for tokens and the current user. The login form is only available when a valid `iam_client` value is present in the IdP configuration.
+
+The IAM client UUID is made available to the component tree via React Context. Services that require the IAM client UUID (such as token requests and token persistence) receive it explicitly when they are created, instead of reading it from a module-level singleton.
 
 When `idp_uuid` is missing or empty, or when the IdP configuration cannot be loaded or does not contain a valid `iam_client` value, the application treats this as a configuration error and renders the authentication error panel instead of the login form.
 
@@ -257,6 +261,8 @@ This allows the application to:
 - quickly access tokens from memory within the current session;
 - restore tokens when the page is reloaded, if they were saved with `rememberMe = true`;
 - keep tokens for different IAM clients strictly isolated so that tokens issued for one client are never reused for another client.
+
+In the current implementation, `tokenStorage` is created for a specific IAM client UUID, which makes the storage namespace an explicit dependency and avoids relying on module-level shared state.
 
 ### Current user
 

@@ -16,7 +16,6 @@
 
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { getTrimmedQueryParam } from './queryParams';
-import { tokenStorage } from './tokenStorage';
 
 const AUTHORIZATION_REQUEST_ENDPOINT_BASE = GENESIS_BASE_URL
   ? `${GENESIS_BASE_URL}/genesis/v1/iam/authorization_requests`
@@ -77,14 +76,14 @@ export async function fetchAuthorizationRequestByUuid(
   return data;
 }
 
-export async function confirmAuthorizationRequest(authUuid: string): Promise<string> {
+export async function confirmAuthorizationRequest(authUuid: string, accessToken: string): Promise<string> {
   if (!AUTHORIZATION_REQUEST_ENDPOINT_BASE) {
     throw new Error('Cannot call authorization request endpoint: base URL is not available');
   }
 
   const trimmed = getAuthUuidForRequests(authUuid);
 
-  const token = tokenStorage.getToken();
+  const token = typeof accessToken === 'string' ? accessToken.trim() : '';
   if (!token) {
     throw new Error('Cannot confirm authorization request: access token is not available');
   }

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import { tokenStorage, type AuthTokens } from './tokenStorage';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
-import { getIamClientUuid } from './iamClientContext';
+import { type AuthTokens, type TokenStorage } from './tokenStorage';
 
 function getClientHeaders(): Record<string, string> {
   const clientId = import.meta.env.GENESIS_CLIENT_ID;
@@ -32,38 +31,23 @@ function getClientHeaders(): Record<string, string> {
   };
 }
 
-function getIamClientForRequests(): string {
-  const trimmed = getIamClientUuid()?.trim() ?? '';
-  if (!trimmed) {
-    throw new Error('IAM client UUID is not configured');
-  }
-
-  return trimmed;
-}
-
-function getTokenEndpoint(): string {
+function getTokenEndpoint(iamClientUuid: string): string {
   if (!GENESIS_BASE_URL) {
     throw new Error('Base URL is not available for token endpoint');
   }
 
-  const clientUuid = getIamClientForRequests();
   return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
-    clientUuid,
+    iamClientUuid,
   )}/actions/get_token/invoke`;
 }
 
-function getMeEndpoint(): string | null {
+function getMeEndpoint(iamClientUuid: string): string | null {
   if (!GENESIS_BASE_URL) {
     return null;
   }
 
-  const trimmed = getIamClientUuid()?.trim() ?? '';
-  if (!trimmed) {
-    return null;
-  }
-
   return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
-    trimmed,
+    iamClientUuid,
   )}/actions/me`;
 }
 
@@ -93,6 +77,16 @@ export type RawTokenResponse = {
   scope?: string;
   [key: string]: unknown;
 };
+
+export function createAuthClient({
+  iamClientUuid,
+  tokenStorage,
+}: {
+  iamClientUuid: string;
+  tokenStorage: TokenStorage;
+}): AuthClient {
+  return new AuthClientImpl({ iamClientUuid, tokenStorage });
+}
 
 export type LoginResult = {
   tokens: AuthTokens;
@@ -145,62 +139,22 @@ function computeRefreshDelaySeconds(meta: TokenMeta): number | null {
   return delaySeconds;
 }
 
-async function requestTokens(body: URLSearchParams, rememberMe: boolean): Promise<LoginResult> {
-  const endpoint = getTokenEndpoint();
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      ...getClientHeaders(),
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(
-      `Token endpoint responded with ${response.status} ${response.statusText}: ${text || 'no body'}`,
-    );
-  }
-
-  let data: RawTokenResponse | null = null;
-
-  try {
-    data = (await response.json()) as RawTokenResponse;
-  } catch {
-    data = null;
-  }
-
-  const tokens: AuthTokens = {
-    token: data?.access_token ?? null,
-    refreshToken: data?.refresh_token ?? null,
-  };
-
-  if (!tokens.token) {
-    throw new Error('Token endpoint did not return access_token');
-  }
-
-  const meta: TokenMeta = {
-    tokenType: data?.token_type ?? null,
-    expiresAt: data?.expires_at ?? null,
-    expiresIn: data?.expires_in ?? null,
-    refreshExpiresIn: data?.refresh_expires_in ?? null,
-    idToken: data?.id_token ?? null,
-    scope: data?.scope ?? null,
-  };
-
-  if (rememberMe) {
-    tokenStorage.setPersistentTokens(tokens);
-  } else {
-    tokenStorage.setTokens(tokens);
-  }
-
-  return { tokens, raw: data, meta };
-}
-
 class AuthClientImpl implements AuthClient {
+  private readonly iamClientUuid: string;
+
+  private readonly tokenStorage: TokenStorage;
+
   private refreshTimer: number | null = null;
+
+  constructor({ iamClientUuid, tokenStorage }: { iamClientUuid: string; tokenStorage: TokenStorage }) {
+    const trimmed = iamClientUuid.trim();
+    if (!trimmed) {
+      throw new Error('IAM client UUID is not configured');
+    }
+
+    this.iamClientUuid = trimmed;
+    this.tokenStorage = tokenStorage;
+  }
 
   stop(): void {
     this.clearRefreshTimer();
@@ -217,13 +171,13 @@ class AuthClientImpl implements AuthClient {
     body.set('username', username);
     body.set('password', password);
     body.set('scope', scope);
-    const result = await requestTokens(body, rememberMe);
+    const result = await this.requestTokens(body, rememberMe);
     this.scheduleAutoRefresh(result.meta, rememberMe);
     return result;
   }
 
   async refreshAccessToken({ rememberMe = true }: RefreshOptions = {}): Promise<LoginResult> {
-    const { refreshToken } = tokenStorage.getTokens();
+    const { refreshToken } = this.tokenStorage.getTokens();
 
     if (!refreshToken) {
       throw new Error('Cannot refresh access token: no refresh_token available');
@@ -233,13 +187,67 @@ class AuthClientImpl implements AuthClient {
     body.set('grant_type', 'refresh_token');
     body.set('refresh_token', refreshToken);
     try {
-      const result = await requestTokens(body, rememberMe);
+      const result = await this.requestTokens(body, rememberMe);
       this.scheduleAutoRefresh(result.meta, rememberMe);
       return result;
     } catch (error) {
-      tokenStorage.clearAll();
+      this.tokenStorage.clearAll();
       throw error;
     }
+  }
+
+  private async requestTokens(body: URLSearchParams, rememberMe: boolean): Promise<LoginResult> {
+    const endpoint = getTokenEndpoint(this.iamClientUuid);
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...getClientHeaders(),
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(
+        `Token endpoint responded with ${response.status} ${response.statusText}: ${text || 'no body'}`,
+      );
+    }
+
+    let data: RawTokenResponse | null = null;
+
+    try {
+      data = (await response.json()) as RawTokenResponse;
+    } catch {
+      data = null;
+    }
+
+    const tokens: AuthTokens = {
+      token: data?.access_token ?? null,
+      refreshToken: data?.refresh_token ?? null,
+    };
+
+    if (!tokens.token) {
+      throw new Error('Token endpoint did not return access_token');
+    }
+
+    const meta: TokenMeta = {
+      tokenType: data?.token_type ?? null,
+      expiresAt: data?.expires_at ?? null,
+      expiresIn: data?.expires_in ?? null,
+      refreshExpiresIn: data?.refresh_expires_in ?? null,
+      idToken: data?.id_token ?? null,
+      scope: data?.scope ?? null,
+    };
+
+    if (rememberMe) {
+      this.tokenStorage.setPersistentTokens(tokens);
+    } else {
+      this.tokenStorage.setTokens(tokens);
+    }
+
+    return { tokens, raw: data, meta };
   }
 
   private clearRefreshTimer(): void {
@@ -269,8 +277,8 @@ class AuthClientImpl implements AuthClient {
   }
 
   async fetchCurrentUserProfile(): Promise<CurrentUserProfile | null> {
-    const token = tokenStorage.getToken();
-    const meEndpoint = getMeEndpoint();
+    const token = this.tokenStorage.getToken();
+    const meEndpoint = getMeEndpoint(this.iamClientUuid);
 
     if (!token || !meEndpoint) {
       return null;
@@ -325,7 +333,3 @@ type MeResponse = {
   };
   [key: string]: unknown;
 };
-
-export function createAuthClient(): AuthClient {
-  return new AuthClientImpl();
-}

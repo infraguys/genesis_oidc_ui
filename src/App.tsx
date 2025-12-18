@@ -23,6 +23,7 @@ import { LoginPanel } from './components/auth/LoginPanel';
 import { UserInfoPanel } from './components/auth/UserInfoPanel';
 import { AuthLayout } from './components/layout/AuthLayout/AuthLayout';
 
+import { IamClientUuidContext } from './contexts/IamClientUuidContext';
 import { useAuth } from './hooks/useAuth';
 import { useAuthorizationRequest } from './hooks/useAuthorizationRequest';
 import { useIdp } from './hooks/useIdp';
@@ -35,8 +36,16 @@ function App(): JSX.Element {
 
   const { idpConfig, idpLoading, idpErrorMessage, idpErrorDetails, reloadIdpConfig } = useIdp(idpUuid);
 
-  const { authClient, iamClient, iamClientName, tokens, currentUserProfile, isProfileLoading, signOut } =
-    useAuth(idpConfig);
+  const {
+    authClient,
+    tokenStorage,
+    iamClient,
+    iamClientName,
+    tokens,
+    currentUserProfile,
+    isProfileLoading,
+    signOut,
+  } = useAuth(idpConfig);
 
   const {
     requestedScopes,
@@ -45,7 +54,7 @@ function App(): JSX.Element {
     isConfirmingAuthorization,
     confirmAuthorization,
     resetAuthorizationConfirmationState,
-  } = useAuthorizationRequest(authUuid);
+  } = useAuthorizationRequest(authUuid, tokens.token);
 
   const handleRetryLoadIdp = (): void => {
     void reloadIdpConfig();
@@ -126,6 +135,7 @@ function App(): JSX.Element {
         panel = (
           <LoginPanel
             authClient={authClient}
+            tokenStorage={tokenStorage}
             title={`Welcome to ${idpConfig.name}`}
             subtitle={idpConfig.description}
           />
@@ -136,7 +146,11 @@ function App(): JSX.Element {
     panel = <AuthLoadingPanel />;
   }
 
-  return <AuthLayout hero={<AuthHero />} panel={panel} />;
+  return (
+    <IamClientUuidContext.Provider value={iamClient || null}>
+      <AuthLayout hero={<AuthHero />} panel={panel} />
+    </IamClientUuidContext.Provider>
+  );
 }
 
 export default App;

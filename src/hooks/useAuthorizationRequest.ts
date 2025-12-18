@@ -33,6 +33,7 @@ export type UseAuthorizationRequestResult = {
 
 export function useAuthorizationRequest(
   authUuid: string | null,
+  accessToken: string | null,
 ): UseAuthorizationRequestResult {
   const [requestedScopes, setRequestedScopes] = useState<string[] | null>(null);
   const [authorizationErrorMessage, setAuthorizationErrorMessage] = useState<string | null>(null);
@@ -83,12 +84,19 @@ export function useAuthorizationRequest(
       return;
     }
 
+    const token = typeof accessToken === 'string' ? accessToken.trim() : '';
+    if (!token) {
+      setAuthorizationErrorMessage('Unable to complete authorization request. Please sign in again.');
+      setAuthorizationErrorDetails('Access token is not available.');
+      return;
+    }
+
     setAuthorizationErrorMessage(null);
     setAuthorizationErrorDetails(null);
     setIsConfirmingAuthorization(true);
 
     try {
-      const redirectUrl = await confirmAuthorizationRequest(authUuid);
+      const redirectUrl = await confirmAuthorizationRequest(authUuid, token);
       if (typeof window !== 'undefined' && redirectUrl) {
         window.location.assign(redirectUrl);
       }
@@ -101,7 +109,7 @@ export function useAuthorizationRequest(
     } finally {
       setIsConfirmingAuthorization(false);
     }
-  }, [authUuid, isConfirmingAuthorization]);
+  }, [accessToken, authUuid, isConfirmingAuthorization]);
 
   return {
     requestedScopes,

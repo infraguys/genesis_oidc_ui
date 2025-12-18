@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { fetchCurrentUserProfile, type CurrentUserProfile } from '../services/authClient';
+import { createAuthClient, type AuthClient, type CurrentUserProfile } from '../services/authClient';
 import { setIamClientUuid } from '../services/iamClientContext';
 import { fetchIamClientByUuid } from '../services/iamClientApi';
 import { type IdpConfig } from '../services/idpClient';
@@ -29,6 +29,7 @@ function getIamClientFromIdpConfig(config: IdpConfig | null): string {
 }
 
 export type UseAuthResult = {
+  authClient: AuthClient;
   iamClient: string;
   iamClientName: string | null;
   tokens: AuthTokens;
@@ -38,6 +39,8 @@ export type UseAuthResult = {
 };
 
 export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
+  const authClient = useMemo(() => createAuthClient(), []);
+
   const [tokens, setTokens] = useState<AuthTokens>(EMPTY_TOKENS);
   const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
@@ -49,12 +52,19 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
     if (!iamClient) {
       setIamClientUuid(null);
       setIamClientName(null);
+      authClient.stop();
       return;
     }
 
     setIamClientUuid(iamClient);
     initializeTokensFromStorage();
-  }, [idpConfig, iamClient]);
+  }, [authClient, idpConfig, iamClient]);
+
+  useEffect(() => {
+    return () => {
+      authClient.stop();
+    };
+  }, [authClient]);
 
   useEffect(() => {
     if (!iamClient) {
@@ -117,7 +127,7 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
 
       void (async () => {
         try {
-          const profile = await fetchCurrentUserProfile();
+          const profile = await authClient.fetchCurrentUserProfile();
 
           if (isCancelled) {
             return;
@@ -157,15 +167,17 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
       isCancelled = true;
       unsubscribe();
     };
-  }, [idpConfig]);
+  }, [authClient, idpConfig]);
 
   const signOut = useCallback((): void => {
+    authClient.stop();
     tokenStorage.clearAll();
     setCurrentUserProfile(null);
     setIsProfileLoading(false);
-  }, []);
+  }, [authClient]);
 
   return {
+    authClient,
     iamClient,
     iamClientName,
     tokens,

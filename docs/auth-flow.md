@@ -266,6 +266,8 @@ In addition to tokens, `tokenStorage` can store the current user identifier in `
 
 To keep the access token up to date, a refresh token and the `refreshAccessToken` function from the `authClient` module are used.
 
+In the current implementation, automatic refresh scheduling is managed by an `AuthClient` instance (created and owned by the auth lifecycle hook). This means the refresh timer is instance-scoped and is cleaned up when the session is disposed (for example, on sign-out), rather than being stored as a module-level singleton.
+
 ### Auto-refresh algorithm
 
 1. After successfully obtaining a token, the `authClient` module calculates the access token expiration time from the metadata (`expires_at` or `expires_in`).

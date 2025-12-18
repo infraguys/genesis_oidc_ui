@@ -35,7 +35,7 @@ function App(): JSX.Element {
 
   const { idpConfig, idpLoading, idpErrorMessage, idpErrorDetails, reloadIdpConfig } = useIdp(idpUuid);
 
-  const { iamClient, iamClientName, tokens, currentUserProfile, isProfileLoading, signOut } =
+  const { authClient, iamClient, iamClientName, tokens, currentUserProfile, isProfileLoading, signOut } =
     useAuth(idpConfig);
 
   const {
@@ -124,7 +124,11 @@ function App(): JSX.Element {
         );
       } else {
         panel = (
-          <LoginPanel title={`Welcome to ${idpConfig.name}`} subtitle={idpConfig.description} />
+          <LoginPanel
+            authClient={authClient}
+            title={`Welcome to ${idpConfig.name}`}
+            subtitle={idpConfig.description}
+          />
         );
       }
     }

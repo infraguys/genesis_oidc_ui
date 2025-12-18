@@ -15,13 +15,15 @@
  */
 
 import { LoginForm } from './LoginForm';
+import type { AuthClient } from '../../services/authClient';
 
 interface LoginPanelProps {
+  authClient: AuthClient;
   title?: string;
   subtitle?: string;
 }
 
-export function LoginPanel({ title, subtitle }: LoginPanelProps = {}): JSX.Element {
+export function LoginPanel({ authClient, title, subtitle }: LoginPanelProps): JSX.Element {
   const panelTitle = title ?? 'Welcome';
   const panelSubtitle =
     subtitle ??
@@ -33,7 +35,7 @@ export function LoginPanel({ title, subtitle }: LoginPanelProps = {}): JSX.Eleme
         <h2 className="login-panel__title">{panelTitle}</h2>
         <p className="login-panel__subtitle">{panelSubtitle}</p>
       </div>
-      <LoginForm />
+      <LoginForm authClient={authClient} />
     </div>
   );
 }

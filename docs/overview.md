@@ -41,6 +41,7 @@ This repository contains a minimal single-page application built with React, Typ
 - `src/`
   - `main.tsx` — application entry point, mounting React to the DOM.
   - `App.tsx` — root React component.
+  - `hooks/` — custom React hooks used by the root component.
 - `public/` — static assets (if needed).
 
 ## Scripts
@@ -102,6 +103,7 @@ Key elements of the flow:
 - displaying the login form on the main screen;
 - sending the username and password to the backend token endpoint;
 - storing the received tokens in memory and, when the `Remember me on this computer` checkbox is enabled, additionally in `localStorage`;
+- keeping the root `App` component as a composition root by delegating orchestration logic to custom hooks such as `useIdp`, `useAuth`, and `useAuthorizationRequest`.
 - optionally loading an IdP (Identity Provider) configuration when the `idp_uuid` query parameter is present in the browser URL. When an IdP is loaded successfully, the login panel header and subtitle are customized using the IdP `name` and `description` fields, the login form is shown only after the IdP request completes, and the `iam_client` field from the IdP configuration is used as the IAM client identifier for token endpoints and per-client token storage in `localStorage`.
 
 A detailed description of the architecture, token handling algorithm, IdP-driven login panel behavior, and manual testing scenarios is available in the `auth-flow.md` document in the `docs/` directory.

@@ -56,9 +56,9 @@ This function:
    - `null` when the parameter is missing or empty.
 
 The root `App` component calls `getAuthUuidFromUrl()` once during initialization
-and keeps the result in its local state. This value is then used for loading the
-authorization request scopes and for confirming the request when the user
-clicks **Provide data**.
+and passes the result to `useAuthorizationRequest(authUuid)`. This hook is
+responsible for loading the authorization request scopes and exposing a
+confirmation action that the UI triggers when the user clicks **Provide data**.
 
 ## Loading requested permissions (scopes)
 
@@ -69,6 +69,9 @@ backend endpoint:
 
 via the `fetchAuthorizationRequestByUuid(authUuid)` function from the
 `authorizationRequestApi` service.
+
+In the React layer, this request is orchestrated by the
+`useAuthorizationRequest(authUuid)` hook.
 
 The response is mapped to the `AuthorizationRequestInfo` structure, which
 contains at least the `scope` field. The `scope` string is split into

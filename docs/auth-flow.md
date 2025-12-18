@@ -1,4 +1,4 @@
-  <!--
+<!--
 Copyright 2025 Genesis Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,10 @@ This document describes how the `genesis_oidc_ui` application implements:
 - **Services**
   - `authClient` — a module responsible for calling backend token endpoints and processing responses.
   - `tokenStorage` — a module that stores tokens in memory and in `localStorage` and notifies listeners when tokens change.
+ - **Hooks**
+   - `useIdp(idpUuid)` — a hook that loads the IdP configuration and manages its loading and error state.
+   - `useAuth(idpConfig)` — a hook that manages IAM client context, token subscription, and user profile loading.
+   - `useAuthorizationRequest(authUuid)` — a hook that loads requested scopes and confirms authorization requests (see `authorization-flow.md`).
 
 ## IdP configuration loading
 
@@ -42,10 +46,10 @@ This document describes how the `genesis_oidc_ui` application implements:
 
   - `GET /genesis/v1/iam/idp/{idp_uuid}`.
 
-- The `IdpClient` service is responsible for:
-  - extracting `idp_uuid` from `window.location.search`;
-  - calling the IdP endpoint;
-  - mapping the response to the `IdpConfig` structure.
+- The `idpClient` service provides:
+   - `getIdpUuidFromUrl()` — extracting `idp_uuid` from `window.location.search`.
+   - `fetchIdpByUuid(idpUuid)` — calling the IdP endpoint and mapping the response to the `IdpConfig` structure.
+ - The root `App` component reads `idp_uuid` once during initialization and passes it to `useIdp(idpUuid)`, which manages the IdP loading lifecycle (loading, error, retry).
 
 ### IdpConfig structure
 

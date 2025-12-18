@@ -16,14 +16,16 @@
 
 import { LoginForm } from './LoginForm';
 import type { AuthClient } from '../../services/authClient';
+import type { TokenStorage } from '../../services/tokenStorage';
 
 interface LoginPanelProps {
   authClient: AuthClient;
+  tokenStorage: TokenStorage;
   title?: string;
   subtitle?: string;
 }
 
-export function LoginPanel({ authClient, title, subtitle }: LoginPanelProps): JSX.Element {
+export function LoginPanel({ authClient, tokenStorage, title, subtitle }: LoginPanelProps): JSX.Element {
   const panelTitle = title ?? 'Welcome';
   const panelSubtitle =
     subtitle ??
@@ -35,7 +37,7 @@ export function LoginPanel({ authClient, title, subtitle }: LoginPanelProps): JS
         <h2 className="login-panel__title">{panelTitle}</h2>
         <p className="login-panel__subtitle">{panelSubtitle}</p>
       </div>
-      <LoginForm authClient={authClient} />
+      <LoginForm authClient={authClient} tokenStorage={tokenStorage} />
     </div>
   );
 }

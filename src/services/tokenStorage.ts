@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import { getIamClientUuid } from './iamClientContext';
-
 export type AuthTokens = {
   token: string | null;
   refreshToken: string | null;
@@ -23,189 +21,159 @@ export type AuthTokens = {
 
 export type TokenListener = (tokens: AuthTokens) => void;
 
-const STORAGE_KEY_PREFIX = 'genesis_oidc_ui.';
-const TOKENS_KEY_SUFFIX = '.authTokens';
-const USER_KEY_SUFFIX = '.currentUser';
+export type TokenStorage = {
+  getTokens: () => AuthTokens;
+  getToken: () => string | null;
+  getRefreshToken: () => string | null;
+  setTokens: (partial: Partial<AuthTokens>) => AuthTokens;
+  setPersistentTokens: (partial: Partial<AuthTokens>) => AuthTokens;
+  clearAll: () => void;
+  getCurrentUser: () => string | null;
+  setCurrentUser: (username: string | null) => void;
+  subscribe: (listener: TokenListener) => () => void;
+  initializeFromStorage: () => void;
+};
 
-const listeners = new Set<TokenListener>();
+export function createTokenStorage(iamClientUuid: string): TokenStorage {
+  const STORAGE_KEY_PREFIX = 'genesis_oidc_ui.';
+  const TOKENS_KEY_SUFFIX = '.authTokens';
+  const USER_KEY_SUFFIX = '.currentUser';
 
-const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  const listeners = new Set<TokenListener>();
 
-function getCurrentClientUuid(): string | null {
-  return getIamClientUuid();
-}
+  const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
-function getStorageKey(suffix: string): string | null {
-  const clientUuid = getCurrentClientUuid();
-  if (!clientUuid) {
-    return null;
-  }
+  const getStorageKey = (suffix: string): string => {
+    return `${STORAGE_KEY_PREFIX}${iamClientUuid}${suffix}`;
+  };
 
-  return `${STORAGE_KEY_PREFIX}${clientUuid}${suffix}`;
-}
+  const getTokensStorageKey = (): string => {
+    return getStorageKey(TOKENS_KEY_SUFFIX);
+  };
 
-function getTokensStorageKey(): string | null {
-  return getStorageKey(TOKENS_KEY_SUFFIX);
-}
+  const getUserStorageKey = (): string => {
+    return getStorageKey(USER_KEY_SUFFIX);
+  };
 
-function getUserStorageKey(): string | null {
-  return getStorageKey(USER_KEY_SUFFIX);
-}
+  const readPersistedTokens = (): AuthTokens => {
+    if (!isBrowser) {
+      return { token: null, refreshToken: null };
+    }
 
-function readPersistedTokens(): AuthTokens {
-  if (!isBrowser) {
-    return { token: null, refreshToken: null };
-  }
+    const storageKey = getTokensStorageKey();
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      return { token: null, refreshToken: null };
+    }
 
-  const storageKey = getTokensStorageKey();
-  if (!storageKey) {
-    return { token: null, refreshToken: null };
-  }
-
-  const raw = window.localStorage.getItem(storageKey);
-  if (!raw) {
-    return { token: null, refreshToken: null };
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<AuthTokens>;
-    return {
-      token: typeof parsed.token === 'string' ? parsed.token : null,
-      refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : null,
-    };
-  } catch {
-    window.localStorage.removeItem(storageKey);
-    return { token: null, refreshToken: null };
-  }
-}
-
-let inMemoryTokens: AuthTokens = { token: null, refreshToken: null };
-
-function persist(tokens: AuthTokens): void {
-  if (!isBrowser) return;
-
-  const storageKey = getTokensStorageKey();
-  if (!storageKey) {
-    return;
-  }
-
-  window.localStorage.setItem(storageKey, JSON.stringify(tokens));
-}
-
-function clearPersisted(): void {
-  if (!isBrowser) return;
-
-  const tokensKey = getTokensStorageKey();
-  const userKey = getUserStorageKey();
-
-  if (tokensKey) {
-    window.localStorage.removeItem(tokensKey);
-  }
-  if (userKey) {
-    window.localStorage.removeItem(userKey);
-  }
-}
-
-function notify(): void {
-  const snapshot = { ...inMemoryTokens };
-  listeners.forEach((listener) => {
     try {
-      listener(snapshot);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('tokenStorage listener error', error);
+      const parsed = JSON.parse(raw) as Partial<AuthTokens>;
+      return {
+        token: typeof parsed.token === 'string' ? parsed.token : null,
+        refreshToken: typeof parsed.refreshToken === 'string' ? parsed.refreshToken : null,
+      };
+    } catch {
+      window.localStorage.removeItem(storageKey);
+      return { token: null, refreshToken: null };
     }
-  });
-}
+  };
 
-export function initializeTokensFromStorage(): void {
-  if (!isBrowser) {
-    return;
-  }
+  let inMemoryTokens: AuthTokens = { token: null, refreshToken: null };
 
-  inMemoryTokens = readPersistedTokens();
-  notify();
-}
-
-export const tokenStorage = {
-  getTokens(): AuthTokens {
-    return { ...inMemoryTokens };
-  },
-
-  getToken(): string | null {
-    return inMemoryTokens.token;
-  },
-
-  getRefreshToken(): string | null {
-    return inMemoryTokens.refreshToken;
-  },
-
-  /**
-   * Updates tokens in memory only (they will be lost after a page reload).
-   */
-  setTokens(partial: Partial<AuthTokens>): AuthTokens {
-    inMemoryTokens = {
-      token: partial.token ?? inMemoryTokens.token,
-      refreshToken: partial.refreshToken ?? inMemoryTokens.refreshToken,
-    };
-    notify();
-    return { ...inMemoryTokens };
-  },
-
-  /**
-   * Updates tokens in memory and in localStorage (survives page reloads).
-   */
-  setPersistentTokens(partial: Partial<AuthTokens>): AuthTokens {
-    const updated = this.setTokens(partial);
-    persist(updated);
-    return updated;
-  },
-
-  /**
-   * Clears tokens from memory and from localStorage.
-   */
-  clearAll(): void {
-    inMemoryTokens = { token: null, refreshToken: null };
-    clearPersisted();
-    notify();
-  },
-
-  getCurrentUser(): string | null {
-    if (!isBrowser) return null;
-
-    const userKey = getUserStorageKey();
-    if (!userKey) {
-      return null;
-    }
-
-    const raw = window.localStorage.getItem(userKey);
-    if (!raw) return null;
-    return raw;
-  },
-
-  setCurrentUser(username: string | null): void {
+  const persist = (tokens: AuthTokens): void => {
     if (!isBrowser) return;
-    const userKey = getUserStorageKey();
-    if (!userKey) {
+    const storageKey = getTokensStorageKey();
+    window.localStorage.setItem(storageKey, JSON.stringify(tokens));
+  };
+
+  const clearPersisted = (): void => {
+    if (!isBrowser) return;
+    window.localStorage.removeItem(getTokensStorageKey());
+    window.localStorage.removeItem(getUserStorageKey());
+  };
+
+  const notify = (): void => {
+    const snapshot = { ...inMemoryTokens };
+    listeners.forEach((listener) => {
+      try {
+        listener(snapshot);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('tokenStorage listener error', error);
+      }
+    });
+  };
+
+  const initializeFromStorage = (): void => {
+    if (!isBrowser) {
       return;
     }
 
-    if (!username) {
-      window.localStorage.removeItem(userKey);
-    } else {
-      window.localStorage.setItem(userKey, username);
-    }
-  },
+    inMemoryTokens = readPersistedTokens();
+    notify();
+  };
 
-  /**
-   * Subscribes to token changes. Returns an unsubscribe function.
-   */
-  subscribe(listener: TokenListener): () => void {
-    listeners.add(listener);
-    listener({ ...inMemoryTokens });
+  return {
+    getTokens(): AuthTokens {
+      return { ...inMemoryTokens };
+    },
 
-    return () => {
-      listeners.delete(listener);
-    };
-  },
-};
+    getToken(): string | null {
+      return inMemoryTokens.token;
+    },
+
+    getRefreshToken(): string | null {
+      return inMemoryTokens.refreshToken;
+    },
+
+    setTokens(partial: Partial<AuthTokens>): AuthTokens {
+      inMemoryTokens = {
+        token: partial.token ?? inMemoryTokens.token,
+        refreshToken: partial.refreshToken ?? inMemoryTokens.refreshToken,
+      };
+      notify();
+      return { ...inMemoryTokens };
+    },
+
+    setPersistentTokens(partial: Partial<AuthTokens>): AuthTokens {
+      const updated = this.setTokens(partial);
+      persist(updated);
+      return updated;
+    },
+
+    clearAll(): void {
+      inMemoryTokens = { token: null, refreshToken: null };
+      clearPersisted();
+      notify();
+    },
+
+    getCurrentUser(): string | null {
+      if (!isBrowser) return null;
+      const raw = window.localStorage.getItem(getUserStorageKey());
+      if (!raw) return null;
+      return raw;
+    },
+
+    setCurrentUser(username: string | null): void {
+      if (!isBrowser) return;
+      const userKey = getUserStorageKey();
+
+      if (!username) {
+        window.localStorage.removeItem(userKey);
+      } else {
+        window.localStorage.setItem(userKey, username);
+      }
+    },
+
+    subscribe(listener: TokenListener): () => void {
+      listeners.add(listener);
+      listener({ ...inMemoryTokens });
+
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+
+    initializeFromStorage,
+  };
+}

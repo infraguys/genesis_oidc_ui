@@ -18,15 +18,16 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 
 import type { AuthClient } from '../../services/authClient';
-import { tokenStorage } from '../../services/tokenStorage';
+import type { TokenStorage } from '../../services/tokenStorage';
 import { PrimaryButton } from '../ui/PrimaryButton/PrimaryButton';
 import { TextInput } from '../ui/TextInput/TextInput';
 
 interface LoginFormProps {
   authClient: AuthClient;
+  tokenStorage: TokenStorage;
 }
 
-export function LoginForm({ authClient }: LoginFormProps): JSX.Element {
+export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Element {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

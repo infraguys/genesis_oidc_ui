@@ -17,19 +17,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { createAuthClient, type AuthClient, type CurrentUserProfile } from '../services/authClient';
-import { setIamClientUuid } from '../services/iamClientContext';
 import { fetchIamClientByUuid } from '../services/iamClientApi';
 import { type IdpConfig } from '../services/idpClient';
-import { initializeTokensFromStorage, tokenStorage, type AuthTokens } from '../services/tokenStorage';
+import { getLastPathSegment } from '../services/identifierUtils';
+import { createTokenStorage, type AuthTokens, type TokenStorage } from '../services/tokenStorage';
 
 const EMPTY_TOKENS: AuthTokens = { token: null, refreshToken: null };
 
 function getIamClientFromIdpConfig(config: IdpConfig | null): string {
-  return typeof config?.iam_client === 'string' ? config.iam_client.trim() : '';
+  const raw = typeof config?.iam_client === 'string' ? config.iam_client.trim() : '';
+  if (!raw) {
+    return '';
+  }
+
+  return getLastPathSegment(raw) ?? '';
 }
 
 export type UseAuthResult = {
   authClient: AuthClient;
+  tokenStorage: TokenStorage;
   iamClient: string;
   iamClientName: string | null;
   tokens: AuthTokens;
@@ -39,8 +45,6 @@ export type UseAuthResult = {
 };
 
 export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
-  const authClient = useMemo(() => createAuthClient(), []);
-
   const [tokens, setTokens] = useState<AuthTokens>(EMPTY_TOKENS);
   const [currentUserProfile, setCurrentUserProfile] = useState<CurrentUserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
@@ -48,17 +52,51 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
 
   const iamClient = getIamClientFromIdpConfig(idpConfig);
 
+  const tokenStorage = useMemo((): TokenStorage => {
+    if (iamClient) {
+      return createTokenStorage(iamClient);
+    }
+
+    return {
+      getTokens: () => ({ ...EMPTY_TOKENS }),
+      getToken: () => null,
+      getRefreshToken: () => null,
+      setTokens: () => ({ ...EMPTY_TOKENS }),
+      setPersistentTokens: () => ({ ...EMPTY_TOKENS }),
+      clearAll: () => undefined,
+      getCurrentUser: () => null,
+      setCurrentUser: () => undefined,
+      subscribe: () => () => undefined,
+      initializeFromStorage: () => undefined,
+    };
+  }, [iamClient]);
+
+  const authClient = useMemo((): AuthClient => {
+    if (iamClient) {
+      return createAuthClient({ iamClientUuid: iamClient, tokenStorage });
+    }
+
+    return {
+      loginWithPassword: async () => {
+        throw new Error('IAM client UUID is not configured');
+      },
+      refreshAccessToken: async () => {
+        throw new Error('IAM client UUID is not configured');
+      },
+      fetchCurrentUserProfile: async () => null,
+      stop: () => undefined,
+    };
+  }, [iamClient, tokenStorage]);
+
   useEffect(() => {
     if (!iamClient) {
-      setIamClientUuid(null);
       setIamClientName(null);
       authClient.stop();
       return;
     }
 
-    setIamClientUuid(iamClient);
-    initializeTokensFromStorage();
-  }, [authClient, idpConfig, iamClient]);
+    tokenStorage.initializeFromStorage();
+  }, [authClient, iamClient, tokenStorage]);
 
   useEffect(() => {
     return () => {
@@ -106,9 +144,16 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
       return;
     }
 
+    if (!iamClient) {
+      setTokens(EMPTY_TOKENS);
+      setCurrentUserProfile(null);
+      setIsProfileLoading(false);
+      return;
+    }
+
     let isCancelled = false;
 
-    const unsubscribe = tokenStorage.subscribe((nextTokens) => {
+    const unsubscribe = tokenStorage.subscribe((nextTokens: AuthTokens) => {
       if (isCancelled) {
         return;
       }
@@ -167,17 +212,18 @@ export function useAuth(idpConfig: IdpConfig | null): UseAuthResult {
       isCancelled = true;
       unsubscribe();
     };
-  }, [authClient, idpConfig]);
+  }, [authClient, iamClient, idpConfig, tokenStorage]);
 
   const signOut = useCallback((): void => {
     authClient.stop();
     tokenStorage.clearAll();
     setCurrentUserProfile(null);
     setIsProfileLoading(false);
-  }, [authClient]);
+  }, [authClient, tokenStorage]);
 
   return {
     authClient,
+    tokenStorage,
     iamClient,
     iamClientName,
     tokens,

@@ -201,9 +201,16 @@ The `authClient` module builds token endpoint URLs based on the current browser 
 
 Each request includes:
 
-- `client_id` and `client_secret` — client identifier and secret;
+- `X-Client-Id` and `X-Client-Secret` headers — client identifier and secret;
 - `grant_type` — the token grant type (`password` or `refresh_token`);
 - additional parameters such as `scope`.
+
+The header values are configured at build time via environment variables and injected into the frontend bundle by Vite:
+
+- `GENESIS_CLIENT_ID`
+- `GENESIS_CLIENT_SECRET`
+
+When running locally, provide them to the Vite dev server environment (for example, by exporting them in your shell before `npm run dev`).
 
 ### Response handling
 

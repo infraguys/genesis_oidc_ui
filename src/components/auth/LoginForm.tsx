@@ -17,12 +17,16 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { loginWithPassword } from '../../services/authClient';
+import type { AuthClient } from '../../services/authClient';
 import { tokenStorage } from '../../services/tokenStorage';
 import { PrimaryButton } from '../ui/PrimaryButton/PrimaryButton';
 import { TextInput } from '../ui/TextInput/TextInput';
 
-export function LoginForm(): JSX.Element {
+interface LoginFormProps {
+  authClient: AuthClient;
+}
+
+export function LoginForm({ authClient }: LoginFormProps): JSX.Element {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -45,7 +49,7 @@ export function LoginForm(): JSX.Element {
 
     setIsSubmitting(true);
     try {
-      await loginWithPassword({
+      await authClient.loginWithPassword({
         username: login,
         password,
         rememberMe,

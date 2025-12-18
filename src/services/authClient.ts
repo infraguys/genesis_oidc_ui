@@ -78,6 +78,10 @@ export type PasswordLoginParams = {
   scope?: string;
 };
 
+export type RefreshOptions = {
+  rememberMe?: boolean;
+};
+
 export type RawTokenResponse = {
   access_token?: string;
   token_type?: string;
@@ -114,15 +118,12 @@ export type CurrentUserProfile = {
   description: string | null;
 };
 
-let refreshTimer: number | null = null;
-
-function clearRefreshTimer(): void {
-  if (typeof window === 'undefined') return;
-  if (refreshTimer !== null) {
-    window.clearTimeout(refreshTimer);
-    refreshTimer = null;
-  }
-}
+export type AuthClient = {
+  loginWithPassword: (params: PasswordLoginParams) => Promise<LoginResult>;
+  refreshAccessToken: (options?: RefreshOptions) => Promise<LoginResult>;
+  fetchCurrentUserProfile: () => Promise<CurrentUserProfile | null>;
+  stop: () => void;
+};
 
 function computeRefreshDelaySeconds(meta: TokenMeta): number | null {
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -195,64 +196,120 @@ async function requestTokens(body: URLSearchParams, rememberMe: boolean): Promis
     tokenStorage.setTokens(tokens);
   }
 
-  scheduleAutoRefresh(meta, rememberMe);
-
   return { tokens, raw: data, meta };
 }
 
-function scheduleAutoRefresh(meta: TokenMeta, rememberMe: boolean): void {
-  if (typeof window === 'undefined') return;
+class AuthClientImpl implements AuthClient {
+  private refreshTimer: number | null = null;
 
-  const delaySeconds = computeRefreshDelaySeconds(meta);
-  if (delaySeconds == null) {
-    return;
+  stop(): void {
+    this.clearRefreshTimer();
   }
 
-  clearRefreshTimer();
+  async loginWithPassword({
+    username,
+    password,
+    rememberMe = true,
+    scope = '',
+  }: PasswordLoginParams): Promise<LoginResult> {
+    const body = new URLSearchParams();
+    body.set('grant_type', 'password');
+    body.set('username', username);
+    body.set('password', password);
+    body.set('scope', scope);
+    const result = await requestTokens(body, rememberMe);
+    this.scheduleAutoRefresh(result.meta, rememberMe);
+    return result;
+  }
 
-  refreshTimer = window.setTimeout(() => {
-    refreshAccessToken({ rememberMe }).catch((error: unknown) => {
-      // eslint-disable-next-line no-console
-      console.error('Auto token refresh failed', error);
+  async refreshAccessToken({ rememberMe = true }: RefreshOptions = {}): Promise<LoginResult> {
+    const { refreshToken } = tokenStorage.getTokens();
+
+    if (!refreshToken) {
+      throw new Error('Cannot refresh access token: no refresh_token available');
+    }
+
+    const body = new URLSearchParams();
+    body.set('grant_type', 'refresh_token');
+    body.set('refresh_token', refreshToken);
+    try {
+      const result = await requestTokens(body, rememberMe);
+      this.scheduleAutoRefresh(result.meta, rememberMe);
+      return result;
+    } catch (error) {
+      tokenStorage.clearAll();
+      throw error;
+    }
+  }
+
+  private clearRefreshTimer(): void {
+    if (typeof window === 'undefined') return;
+    if (this.refreshTimer !== null) {
+      window.clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  private scheduleAutoRefresh(meta: TokenMeta, rememberMe: boolean): void {
+    if (typeof window === 'undefined') return;
+
+    const delaySeconds = computeRefreshDelaySeconds(meta);
+    if (delaySeconds == null) {
+      return;
+    }
+
+    this.clearRefreshTimer();
+
+    this.refreshTimer = window.setTimeout(() => {
+      this.refreshAccessToken({ rememberMe }).catch((error: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error('Auto token refresh failed', error);
+      });
+    }, delaySeconds * 1000);
+  }
+
+  async fetchCurrentUserProfile(): Promise<CurrentUserProfile | null> {
+    const token = tokenStorage.getToken();
+    const meEndpoint = getMeEndpoint();
+
+    if (!token || !meEndpoint) {
+      return null;
+    }
+
+    const response = await fetch(meEndpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-  }, delaySeconds * 1000);
-}
 
-export async function loginWithPassword({
-  username,
-  password,
-  rememberMe = true,
-  scope = '',
-}: PasswordLoginParams): Promise<LoginResult> {
-  const body = new URLSearchParams();
-  body.set('grant_type', 'password');
-  body.set('username', username);
-  body.set('password', password);
-  body.set('scope', scope);
-  return requestTokens(body, rememberMe);
-}
+    if (!response.ok) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch current user profile', response.status, response.statusText);
+      return null;
+    }
 
-export type RefreshOptions = {
-  rememberMe?: boolean;
-};
+    let data: MeResponse;
+    try {
+      data = (await response.json()) as MeResponse;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to parse current user profile response', error);
+      return null;
+    }
 
-export async function refreshAccessToken({
-  rememberMe = true,
-}: RefreshOptions = {}): Promise<LoginResult> {
-  const { refreshToken } = tokenStorage.getTokens();
+    const user = data.user;
+    if (!user) {
+      return null;
+    }
 
-  if (!refreshToken) {
-    throw new Error('Cannot refresh access token: no refresh_token available');
-  }
-
-  const body = new URLSearchParams();
-  body.set('grant_type', 'refresh_token');
-  body.set('refresh_token', refreshToken);
-  try {
-    return await requestTokens(body, rememberMe);
-  } catch (error) {
-    tokenStorage.clearAll();
-    throw error;
+    return {
+      uuid: user.uuid ?? '',
+      first_name: user.first_name ?? null,
+      last_name: user.last_name ?? null,
+      username: user.username ?? null,
+      email: user.email ?? null,
+      description: user.description ?? null,
+    };
   }
 }
 
@@ -269,46 +326,6 @@ type MeResponse = {
   [key: string]: unknown;
 };
 
-export async function fetchCurrentUserProfile(): Promise<CurrentUserProfile | null> {
-  const token = tokenStorage.getToken();
-  const meEndpoint = getMeEndpoint();
-
-  if (!token || !meEndpoint) {
-    return null;
-  }
-
-  const response = await fetch(meEndpoint, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to fetch current user profile', response.status, response.statusText);
-    return null;
-  }
-
-  let data: MeResponse;
-  try {
-    data = (await response.json()) as MeResponse;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to parse current user profile response', error);
-    return null;
-  }
-
-  const user = data.user;
-  if (!user) {
-    return null;
-  }
-
-  return {
-    uuid: user.uuid ?? '',
-    first_name: user.first_name ?? null,
-    last_name: user.last_name ?? null,
-    username: user.username ?? null,
-    email: user.email ?? null,
-    description: user.description ?? null,
-  };
+export function createAuthClient(): AuthClient {
+  return new AuthClientImpl();
 }

@@ -319,7 +319,7 @@ export function UserInfoPanel({
             type="button"
             fullWidth
             onClick={handleProvideDataClick}
-            disabled={Boolean(isProvideDataDisabled)}
+            disabled={isProvideDataDisabled}
             title={isProvideDataDisabled ? provideDataDisabledReason : undefined}
           >
             Provide data

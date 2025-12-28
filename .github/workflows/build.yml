@@ -1,0 +1,52 @@
+name: build & deploy
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Build target'
+        required: true
+        default: 'ci_stage'
+        type: choice
+        options:
+        - ci_stage
+
+env:
+  ARTIFACTS_PATH: artifacts
+  PROJECT_NAME: genesis-oidc-ui
+  REPO_ENDPOINT: http://10.20.0.1:8081
+  REPO_ENDPOINT_PUT: http://10.20.0.1:8082
+
+
+jobs:
+  build:
+    runs-on: [self-hosted]
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
+      - name: Build Genesis OIDC UI
+        env:
+            UI_BUILD_ENV_BUILD_TARGET: ${{ github.event.inputs.build_target }}
+        run: |
+          set -eux
+
+          # Install DevTools
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install genesis-devtools
+
+          VERSION="$(genesis get-version .)"
+
+          npm install
+          npm run build
+
+          # Prepare the artifact
+          tar -czf dist.tar.gz dist
+
+          # Upload the artifact
+          curl -X PUT --upload-file dist.tar.gz \
+            $REPO_ENDPOINT_PUT/${PROJECT_NAME}/${VERSION}/dist.tar.gz

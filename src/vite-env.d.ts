@@ -17,8 +17,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly GENESIS_CLIENT_ID: string;
-  readonly GENESIS_CLIENT_SECRET: string;
 }
 
 interface ImportMeta {

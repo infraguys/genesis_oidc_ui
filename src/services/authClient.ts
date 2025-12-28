@@ -18,20 +18,6 @@ import { API_CORE_PREFIX } from './apiPrefix';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { type AuthTokens, type TokenStorage } from './tokenStorage';
 
-function getClientHeaders(): Record<string, string> {
-  const clientId = import.meta.env.GENESIS_CLIENT_ID;
-  const clientSecret = import.meta.env.GENESIS_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Genesis client credentials are not configured');
-  }
-
-  return {
-    'X-Client-Id': clientId,
-    'X-Client-Secret': clientSecret,
-  };
-}
-
 function getTokenEndpoint(iamClientUuid: string): string {
   if (!GENESIS_BASE_URL) {
     throw new Error('Base URL is not available for token endpoint');
@@ -204,7 +190,6 @@ class AuthClientImpl implements AuthClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        ...getClientHeaders(),
       },
       body,
     });

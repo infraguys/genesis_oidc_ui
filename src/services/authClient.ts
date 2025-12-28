@@ -32,20 +32,6 @@ const OAUTH = {
   CONTENT_TYPE_FORM_URLENCODED: 'application/x-www-form-urlencoded',
 } as const;
 
-function getClientHeaders(): Record<string, string> {
-  const clientId = import.meta.env.GENESIS_CLIENT_ID;
-  const clientSecret = import.meta.env.GENESIS_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Genesis client credentials are not configured');
-  }
-
-  return {
-    [OAUTH.HEADER_CLIENT_ID]: clientId,
-    [OAUTH.HEADER_CLIENT_SECRET]: clientSecret,
-  };
-}
-
 function getTokenEndpoint(iamClientUuid: string): string {
   if (!GENESIS_BASE_URL) {
     throw new Error('Base URL is not available for token endpoint');
@@ -218,7 +204,6 @@ class AuthClientImpl implements AuthClient {
       method: 'POST',
       headers: {
         [OAUTH.HEADER_CONTENT_TYPE]: OAUTH.CONTENT_TYPE_FORM_URLENCODED,
-        ...getClientHeaders(),
       },
       body,
     });

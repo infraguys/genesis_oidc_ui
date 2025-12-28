@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+import { API_CORE_PREFIX } from './apiPrefix';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { getTrimmedQueryParam } from './queryParams';
 
-const IDP_ENDPOINT_BASE = GENESIS_BASE_URL ? `${GENESIS_BASE_URL}/genesis/v1/iam/idp` : '';
+const IDP_ENDPOINT_BASE = GENESIS_BASE_URL ? `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/idp` : '';
 
 export type IdpConfig = {
   uuid: string;

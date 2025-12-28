@@ -39,3 +39,6 @@ pnpm-debug.log*
 *.swo
 *.iml
 .DS_Store
+
+# Windsurf configuration (must not be committed)
+.windsurf/

@@ -17,6 +17,8 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 
+import { API_CORE_PREFIX } from './src/services/apiPrefix';
+
 export default defineConfig(({ mode }) => {
   const envDir = new URL('.', import.meta.url).pathname;
   const env = loadEnv(mode, envDir, '');
@@ -31,10 +33,10 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       allowedHosts: ['auth.genesis-core.local'],
       proxy: {
-        '/genesis': {
+        [API_CORE_PREFIX]: {
           target: 'http://127.0.0.1:11010',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/genesis/, ''),
+          rewrite: (path) => path.replace(API_CORE_PREFIX, ''),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
               const forwardedProto =
@@ -63,7 +65,7 @@ export default defineConfig(({ mode }) => {
               }
 
               proxyReq.setHeader('X-Forwarded-Proto', forwardedProto);
-              proxyReq.setHeader('X-Forwarded-Prefix', '/genesis');
+              proxyReq.setHeader('X-Forwarded-Prefix', API_CORE_PREFIX);
             });
           },
         },

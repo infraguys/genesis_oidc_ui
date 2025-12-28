@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { API_CORE_PREFIX } from './apiPrefix';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { type AuthTokens, type TokenStorage } from './tokenStorage';
 
@@ -36,7 +37,7 @@ function getTokenEndpoint(iamClientUuid: string): string {
     throw new Error('Base URL is not available for token endpoint');
   }
 
-  return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
+  return `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
     iamClientUuid,
   )}/actions/get_token/invoke`;
 }
@@ -46,7 +47,7 @@ function getMeEndpoint(iamClientUuid: string): string | null {
     return null;
   }
 
-  return `${GENESIS_BASE_URL}/genesis/v1/iam/clients/${encodeURIComponent(
+  return `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
     iamClientUuid,
   )}/actions/me`;
 }

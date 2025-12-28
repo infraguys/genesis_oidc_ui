@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+import { API_CORE_PREFIX } from './apiPrefix';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { getTrimmedQueryParam } from './queryParams';
 
 const AUTHORIZATION_REQUEST_ENDPOINT_BASE = GENESIS_BASE_URL
-  ? `${GENESIS_BASE_URL}/genesis/v1/iam/authorization_requests`
+  ? `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/authorization_requests`
   : '';
 
 export type AuthorizationRequestInfo = {

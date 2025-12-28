@@ -46,7 +46,7 @@ This document describes how the `genesis_oidc_ui` application implements:
 - The UI expects the `idp_uuid` parameter in the form `?idp_uuid=<uuid>`.
 - If `idp_uuid` is present and non-empty, the frontend calls the backend endpoint:
 
-  - `GET /genesis/v1/iam/idp/{idp_uuid}`.
+  - `GET /api/core/v1/iam/idp/{idp_uuid}`.
 
 - The `idpClient` service provides:
    - `getIdpUuidFromUrl()` — extracting `idp_uuid` from `window.location.search`.
@@ -191,7 +191,7 @@ The `UserInfoPanel` component is rendered on the right-hand side of the layout w
 - A compact "ID card" with:
   - user profile fields such as full name, description, username, email domain, and user UUID (`CurrentUserProfile`);
   - IAM client information such as the current IAM client name and identifier.
-- A collapsible **Permissions requested** section below the ID card that is collapsed by default and, when expanded, shows the OIDC scopes requested by the application as a set of small badges. These scopes are loaded from the `/genesis/v1/iam/authorization_requests/<auth_uuid>` endpoint, where `auth_uuid` is taken from the `auth_uuid` query parameter in the current page URL. The `scope` string from the backend response is split into individual scopes before rendering.
+- A collapsible **Permissions requested** section below the ID card that is collapsed by default and, when expanded, shows the OIDC scopes requested by the application as a set of small badges. These scopes are loaded from the `/api/core/v1/iam/authorization_requests/<auth_uuid>` endpoint, where `auth_uuid` is taken from the `auth_uuid` query parameter in the current page URL. The `scope` string from the backend response is split into individual scopes before rendering.
 - An actions block with:
   - a primary **Provide data** button that confirms the current authorization request (identified by the `auth_uuid` query parameter) by calling the backend endpoint described below and, on success, redirects the browser to the final redirect URL returned by the backend;
   - a secondary **Sign out** button that clears tokens via `tokenStorage.clearAll()` and returns the UI to the unauthenticated login state.
@@ -236,7 +236,7 @@ The root `App` component calls `getAuthUuidFromUrl()` once during initialization
 
 When a non-empty `auth_uuid` value is available, the application calls the backend endpoint:
 
-- `GET /genesis/v1/iam/authorization_requests/<auth_uuid>`
+- `GET /api/core/v1/iam/authorization_requests/<auth_uuid>`
 
 via the `fetchAuthorizationRequestByUuid(authUuid)` function from the `authorizationRequestApi` service.
 
@@ -273,7 +273,7 @@ When the user is authenticated and a non-empty `auth_uuid` value is available, c
 
 The frontend calls the endpoint:
 
-- `POST /genesis/v1/iam/authorization_requests/<auth_uuid>/actions/confirm/invoke`
+- `POST /api/core/v1/iam/authorization_requests/<auth_uuid>/actions/confirm/invoke`
 
 with the following characteristics:
 

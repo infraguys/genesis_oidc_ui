@@ -56,9 +56,11 @@ This repository contains a minimal single-page application built with React, Typ
 
 During local development, the Vite dev server is configured to proxy backend requests.
 
-- All HTTP requests starting with the `/genesis` path prefix are forwarded to `http://127.0.0.1:11010`.
-- The `/genesis` prefix is stripped before the request is sent to the backend.
-  - Example: `/genesis/api/health` -> `http://127.0.0.1:11010/api/health`.
+The proxy path prefix is centralized in code as a constant so that changing it requires updates in a single place.
+
+- All HTTP requests starting with the `/api/core` path prefix are forwarded to `http://127.0.0.1:11010`.
+- The `/api/core` prefix is stripped before the request is sent to the backend.
+  - Example: `/api/core/api/health` -> `http://127.0.0.1:11010/api/health`.
 - This proxy configuration is applied only when running the dev server via `npm run dev`.
 
 In addition to forwarding the request, the proxy also attaches a set of headers that describe how the frontend is accessed externally:
@@ -66,7 +68,7 @@ In addition to forwarding the request, the proxy also attaches a set of headers 
 - `X-Forwarded-Host` — the host used by the client to access the UI (for example, `auth.genesis-core.local`).
 - `X-Forwarded-Port` — the port used by the client to access the UI (for example, `5173`).
 - `X-Forwarded-Proto` — the protocol used by the client (`http` in typical local development scenarios).
-- `X-Forwarded-Prefix` — the UI base path prefix (`/genesis`).
+- `X-Forwarded-Prefix` — the UI base path prefix (`/api/core`).
 
 The backend can use these headers to reconstruct the external base URL of the UI. For example:
 

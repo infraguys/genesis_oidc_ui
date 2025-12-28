@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
         [API_CORE_PREFIX]: {
           target: 'http://127.0.0.1:11010',
           changeOrigin: true,
-          rewrite: (path) => path.replace(API_CORE_PREFIX, ''),
+          rewrite: (path) => (path.startsWith(API_CORE_PREFIX) ? path.slice(API_CORE_PREFIX.length) : path),
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
               const forwardedProto =

@@ -51,7 +51,7 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
     setIsSubmitting(true);
     try {
       await authClient.loginWithPassword({
-        username: login,
+        login,
         password,
         rememberMe,
         scope: 'project:default',
@@ -59,7 +59,7 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
 
       tokenStorage.setCurrentUser(rememberMe ? login : null);
     } catch (error) {
-      setError('Invalid username or password. Please try again.');
+      setError('Invalid login or password. Please try again.');
       // eslint-disable-next-line no-console
       console.error('Login failed', error);
     } finally {
@@ -71,7 +71,7 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
     <form className="login-form" onSubmit={handleSubmit}>
       <TextInput
         label="Login"
-        placeholder="Enter your login"
+        placeholder="Enter your username or email"
         value={login}
         onChange={setLogin}
         autoComplete="username"

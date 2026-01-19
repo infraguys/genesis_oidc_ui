@@ -18,6 +18,20 @@ import { API_CORE_PREFIX } from './apiPrefix';
 import { GENESIS_BASE_URL } from './genesisBaseUrl';
 import { type AuthTokens, type TokenStorage } from './tokenStorage';
 
+const OAUTH = {
+  FORM_GRANT_TYPE: 'grant_type',
+  FORM_LOGIN: 'login',
+  FORM_PASSWORD: 'password',
+  FORM_REFRESH_TOKEN: 'refresh_token',
+  FORM_SCOPE: 'scope',
+  GRANT_TYPE_LOGIN_PASSWORD: 'login+password',
+  GRANT_TYPE_REFRESH_TOKEN: 'refresh_token',
+  HEADER_CLIENT_ID: 'X-Client-Id',
+  HEADER_CLIENT_SECRET: 'X-Client-Secret',
+  HEADER_CONTENT_TYPE: 'Content-Type',
+  CONTENT_TYPE_FORM_URLENCODED: 'application/x-www-form-urlencoded',
+} as const;
+
 function getClientHeaders(): Record<string, string> {
   const clientId = import.meta.env.GENESIS_CLIENT_ID;
   const clientSecret = import.meta.env.GENESIS_CLIENT_SECRET;
@@ -27,8 +41,8 @@ function getClientHeaders(): Record<string, string> {
   }
 
   return {
-    'X-Client-Id': clientId,
-    'X-Client-Secret': clientSecret,
+    [OAUTH.HEADER_CLIENT_ID]: clientId,
+    [OAUTH.HEADER_CLIENT_SECRET]: clientSecret,
   };
 }
 
@@ -53,7 +67,7 @@ function getMeEndpoint(iamClientUuid: string): string | null {
 }
 
 export type PasswordLoginParams = {
-  username: string;
+  login: string;
   password: string;
   /**
    * If true, tokens will be stored in localStorage in addition to memory.
@@ -162,16 +176,16 @@ class AuthClientImpl implements AuthClient {
   }
 
   async loginWithPassword({
-    username,
+    login,
     password,
     rememberMe = true,
     scope = '',
   }: PasswordLoginParams): Promise<LoginResult> {
     const body = new URLSearchParams();
-    body.set('grant_type', 'password');
-    body.set('username', username);
-    body.set('password', password);
-    body.set('scope', scope);
+    body.set(OAUTH.FORM_GRANT_TYPE, OAUTH.GRANT_TYPE_LOGIN_PASSWORD);
+    body.set(OAUTH.FORM_LOGIN, login);
+    body.set(OAUTH.FORM_PASSWORD, password);
+    body.set(OAUTH.FORM_SCOPE, scope);
     const result = await this.requestTokens(body, rememberMe);
     this.scheduleAutoRefresh(result.meta, rememberMe);
     return result;
@@ -185,8 +199,8 @@ class AuthClientImpl implements AuthClient {
     }
 
     const body = new URLSearchParams();
-    body.set('grant_type', 'refresh_token');
-    body.set('refresh_token', refreshToken);
+    body.set(OAUTH.FORM_GRANT_TYPE, OAUTH.GRANT_TYPE_REFRESH_TOKEN);
+    body.set(OAUTH.FORM_REFRESH_TOKEN, refreshToken);
     try {
       const result = await this.requestTokens(body, rememberMe);
       this.scheduleAutoRefresh(result.meta, rememberMe);
@@ -203,7 +217,7 @@ class AuthClientImpl implements AuthClient {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        [OAUTH.HEADER_CONTENT_TYPE]: OAUTH.CONTENT_TYPE_FORM_URLENCODED,
         ...getClientHeaders(),
       },
       body,

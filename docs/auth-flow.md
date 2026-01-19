@@ -135,9 +135,9 @@ In the current version of the application, the main screen focuses on the login 
 3. If an IdP configuration is successfully loaded and there are no tokens for the current IAM client, the authentication panel renders the `LoginPanel` with the `LoginForm`.
 4. The user enters a username and password and chooses whether to enable the `Remember me on this computer` checkbox (it is unchecked by default).
 5. When the form is submitted:
-   - a basic check is performed to ensure that username and password are not empty;
+   - a basic check is performed to ensure that login and password are not empty;
    - the `loginWithPassword` function from the `authClient` module is called with parameters:
-     - `username` — the user's login;
+     - `login` — the user's login identifier (username or email);
      - `password` — the user's password;
      - `rememberMe` — a boolean flag that corresponds to the state of the `Remember me on this computer` checkbox (when `true`, tokens are saved in `localStorage`; when `false`, tokens are stored only in memory);
      - `scope` — the access scope string (for example, `project:default`).
@@ -332,14 +332,18 @@ The user can typically close the window or return to the integrating application
 
 The `authClient` module builds token endpoint URLs based on the current browser window base URL (`window.location`). Using this base and the IAM client UUID from the loaded IdP configuration (`IdpConfig.iam_client`), it defines:
 
-- the endpoint for obtaining a token with username and password (`grant_type=password`);
+- the endpoint for obtaining a token with login and password (`grant_type=login+password`);
 - the endpoint for refreshing a token using a refresh token (`grant_type=refresh_token`).
 
 Each request includes:
 
-- `X-Client-Id` and `X-Client-Secret` headers — client identifier and secret;
-- `grant_type` — the token grant type (`password` or `refresh_token`);
+- `X-Client-Id` and `X-Client-Secret` headers — client identifier and secret (this is the correct and supported client authentication mechanism in this UI);
+- `grant_type` — the token grant type (`login+password` or `refresh_token`);
 - additional parameters such as `scope`.
+
+When obtaining tokens with `grant_type=login+password`, the request body contains:
+
+- `login` — a single login identifier string; when it contains `@` it is treated as an email, otherwise as a username.
 
 The header values are configured at build time via environment variables and injected into the frontend bundle by Vite:
 

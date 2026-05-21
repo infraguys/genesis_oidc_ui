@@ -32,6 +32,9 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# Local scripts
+scripts/
+
 # Editor and OS files
 .vscode/
 .idea/

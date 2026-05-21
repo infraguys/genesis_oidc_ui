@@ -17,7 +17,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
-import type { AuthClient } from '../../services/authClient';
+import { TokenRequestError, type AuthClient } from '../../services/authClient';
 import type { TokenStorage } from '../../services/tokenStorage';
 import { PrimaryButton } from '../ui/PrimaryButton/PrimaryButton';
 import { TextInput } from '../ui/TextInput/TextInput';
@@ -30,6 +30,8 @@ interface LoginFormProps {
 export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Element {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpRequired, setOtpRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -39,6 +41,11 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
     event.preventDefault();
 
     if (!login || !password || isSubmitting) {
+      return;
+    }
+
+    if (otpRequired && !otp.trim()) {
+      setError('Enter your one-time password code.');
       return;
     }
 
@@ -55,11 +62,29 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
         password,
         rememberMe,
         scope: 'project:default',
+        ...(otp.trim() ? { otp: otp.trim() } : {}),
       });
 
       tokenStorage.setCurrentUser(rememberMe ? login : null);
     } catch (error) {
-      setError('Invalid login or password. Please try again.');
+      if (error instanceof TokenRequestError) {
+        if (error.status === 401) {
+          if (!otpRequired) {
+            setOtpRequired(true);
+            setError(null);
+          } else {
+            setError('Invalid one-time password code. Please try again.');
+          }
+        } else if (error.status === 400) {
+          setOtpRequired(false);
+          setOtp('');
+          setError('Invalid login or password. Please try again.');
+        } else {
+          setError('Login failed. Please try again.');
+        }
+      } else {
+        setError('Login failed. Please try again.');
+      }
       // eslint-disable-next-line no-console
       console.error('Login failed', error);
     } finally {
@@ -97,6 +122,15 @@ export function LoginForm({ authClient, tokenStorage }: LoginFormProps): JSX.Ele
           </button>
         }
       />
+      {otpRequired && (
+        <TextInput
+          label="One-time password"
+          placeholder="Enter your one-time password code"
+          value={otp}
+          onChange={setOtp}
+          autoComplete="one-time-code"
+        />
+      )}
       <div className="login-form__remember-row">
         <label className="login-form__remember">
           <input

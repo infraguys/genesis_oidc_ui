@@ -15,10 +15,10 @@
  */
 
 import { API_CORE_PREFIX } from './apiPrefix';
-import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { EXORDOS_BASE_URL } from './exordosBaseUrl';
 import { getTrimmedQueryParam } from './queryParams';
 
-const IDP_ENDPOINT_BASE = GENESIS_BASE_URL ? `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/idp` : '';
+const IDP_ENDPOINT_BASE = EXORDOS_BASE_URL ? `${EXORDOS_BASE_URL}${API_CORE_PREFIX}/v1/iam/idp` : '';
 
 export type IdpConfig = {
   uuid: string;

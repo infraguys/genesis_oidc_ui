@@ -15,11 +15,11 @@
  */
 
 import { API_CORE_PREFIX } from './apiPrefix';
-import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { EXORDOS_BASE_URL } from './exordosBaseUrl';
 import { getLastPathSegment } from './identifierUtils';
 
-const IAM_CLIENT_ENDPOINT_BASE = GENESIS_BASE_URL
-  ? `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients`
+const IAM_CLIENT_ENDPOINT_BASE = EXORDOS_BASE_URL
+  ? `${EXORDOS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients`
   : '';
 
 export type IamClientInfo = {

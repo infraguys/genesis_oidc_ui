@@ -65,7 +65,7 @@ The proxy path prefix is centralized in code as a constant so that changing it r
 
 In addition to forwarding the request, the proxy also attaches a set of headers that describe how the frontend is accessed externally:
 
-- `X-Forwarded-Host` — the host used by the client to access the UI (for example, `auth.genesis-core.local`).
+- `X-Forwarded-Host` — the host used by the client to access the UI (for example, `auth.exordos-core.local`).
 - `X-Forwarded-Port` — the port used by the client to access the UI (for example, `5173`).
 - `X-Forwarded-Proto` — the protocol used by the client (`http` in typical local development scenarios).
 - `X-Forwarded-Prefix` — the UI base path prefix (`/api/core`).

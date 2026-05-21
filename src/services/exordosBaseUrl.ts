@@ -14,5 +14,5 @@
  * limitations under the License.
  */
 
-export const GENESIS_BASE_URL =
+export const EXORDOS_BASE_URL =
   typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '';

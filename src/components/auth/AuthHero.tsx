@@ -22,7 +22,7 @@ export function AuthHero(): JSX.Element {
       <div className="auth-hero__logo">
         <div className="auth-hero__logo-inner" />
       </div>
-      <h1 className="auth-hero__title">Genesis Core</h1>
+      <h1 className="auth-hero__title">Exordos Core</h1>
       <DynamicTagline />
     </div>
   );

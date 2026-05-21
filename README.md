@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-# Genesis OIDC UI
+# Exordos OIDC UI
 
 This repository contains a minimal React application bootstrapped with Vite and TypeScript.
 

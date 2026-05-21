@@ -35,7 +35,7 @@ export type TokenStorage = {
 };
 
 export function createTokenStorage(iamClientUuid: string): TokenStorage {
-  const STORAGE_KEY_PREFIX = 'genesis_oidc_ui.';
+  const STORAGE_KEY_PREFIX = 'exordos_oidc_ui.';
   const TOKENS_KEY_SUFFIX = '.authTokens';
   const USER_KEY_SUFFIX = '.currentUser';
 

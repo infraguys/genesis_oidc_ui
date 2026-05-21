@@ -16,7 +16,7 @@ limitations under the License.
 
 # Style Guide
 
-This document describes the visual style conventions used in the `genesis-oidc-ui` project.
+This document describes the visual style conventions used in the `exordos-oidc-ui` project.
 
 ## Typography
 

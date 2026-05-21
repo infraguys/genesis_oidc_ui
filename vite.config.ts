@@ -24,7 +24,7 @@ export default defineConfig(() => {
     plugins: [react()],
     server: {
       host: '0.0.0.0',
-      allowedHosts: ['auth.genesis-core.local'],
+      allowedHosts: ['auth.exordos-core.local'],
       proxy: {
         [API_CORE_PREFIX]: {
           target: 'http://127.0.0.1:11010',

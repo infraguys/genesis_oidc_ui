@@ -18,7 +18,7 @@ limitations under the License.
 
 ## Purpose
 
-This document describes how the `genesis_oidc_ui` application implements:
+This document describes how the `exordos_oidc_ui` application implements:
 
 - the user login form;
 - interaction with the authentication server to obtain tokens;
@@ -130,7 +130,7 @@ In the current version of the application, the main screen focuses on the login 
 
 ## User authentication flow
 
-1. The user opens the single-page `genesis_oidc_ui` application.
+1. The user opens the single-page `exordos_oidc_ui` application.
 2. The root application component renders the authentication layout (`AuthLayout`) with the left-hand `AuthHero` block and the right-hand authentication panel.
 3. If an IdP configuration is successfully loaded and there are no tokens for the current IAM client, the authentication panel renders the `LoginPanel` with the `LoginForm`.
 4. The user enters a username and password and chooses whether to enable the `Remember me on this computer` checkbox (it is unchecked by default).
@@ -202,7 +202,7 @@ The same rules that apply to the login panel layout (alignment, spacing, and res
 
 ### Purpose
 
-This section describes how the `genesis_oidc_ui` application handles authorization requests that are identified by the `auth_uuid` query parameter and how the **Provide data** button in the `UserInfoPanel` interacts with the backend to confirm providing user data to the OIDC client and to perform the final redirect.
+This section describes how the `exordos_oidc_ui` application handles authorization requests that are identified by the `auth_uuid` query parameter and how the **Provide data** button in the `UserInfoPanel` interacts with the backend to confirm providing user data to the OIDC client and to perform the final redirect.
 
 ### Query parameters
 
@@ -294,7 +294,7 @@ The response body has the following shape (additional fields may be present depe
 
 ```json
 {
-  "redirect_url": "https://zulip.genesis-core.local/complete/oidc/?code=...&state=..."
+  "redirect_url": "https://zulip.exordos-core.local/complete/oidc/?code=...&state=..."
 }
 ```
 
@@ -347,8 +347,8 @@ When obtaining tokens with `grant_type=login+password`, the request body contain
 
 The header values are configured at build time via environment variables and injected into the frontend bundle by Vite:
 
-- `GENESIS_CLIENT_ID`
-- `GENESIS_CLIENT_SECRET`
+- `EXORDOS_CLIENT_ID`
+- `EXORDOS_CLIENT_SECRET`
 
 When running locally, provide them to the Vite dev server environment (for example, by exporting them in your shell before `npm run dev`).
 
@@ -385,8 +385,8 @@ Tokens are represented by the `AuthTokens` type:
   - updates token values in memory;
   - when `setPersistentTokens` is used, additionally serializes them to `localStorage` under a key that is namespaced by the current IAM client UUID.
 - For each IAM client UUID `<client_uuid>` the following keys are used:
-  - `genesis_oidc_ui.<client_uuid>.authTokens` — a JSON object with `token` and `refreshToken` fields;
-  - `genesis_oidc_ui.<client_uuid>.currentUser` — the last successfully authenticated username for that client.
+  - `exordos_oidc_ui.<client_uuid>.authTokens` — a JSON object with `token` and `refreshToken` fields;
+  - `exordos_oidc_ui.<client_uuid>.currentUser` — the last successfully authenticated username for that client.
 
 This allows the application to:
 

@@ -15,7 +15,7 @@
  */
 
 import { API_CORE_PREFIX } from './apiPrefix';
-import { GENESIS_BASE_URL } from './genesisBaseUrl';
+import { EXORDOS_BASE_URL } from './exordosBaseUrl';
 import { type AuthTokens, type TokenStorage } from './tokenStorage';
 
 const OAUTH = {
@@ -33,21 +33,21 @@ const OAUTH = {
 } as const;
 
 function getTokenEndpoint(iamClientUuid: string): string {
-  if (!GENESIS_BASE_URL) {
+  if (!EXORDOS_BASE_URL) {
     throw new Error('Base URL is not available for token endpoint');
   }
 
-  return `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
+  return `${EXORDOS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
     iamClientUuid,
   )}/actions/get_token/invoke`;
 }
 
 function getMeEndpoint(iamClientUuid: string): string | null {
-  if (!GENESIS_BASE_URL) {
+  if (!EXORDOS_BASE_URL) {
     return null;
   }
 
-  return `${GENESIS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
+  return `${EXORDOS_BASE_URL}${API_CORE_PREFIX}/v1/iam/clients/${encodeURIComponent(
     iamClientUuid,
   )}/actions/me`;
 }
